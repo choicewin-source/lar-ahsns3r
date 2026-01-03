@@ -1,0 +1,1323 @@
+<?php
+
+namespace App\Livewire;
+
+use App\Models\Product;
+use App\Models\Category;
+use Livewire\Component;
+use Illuminate\Support\Str;
+use Livewire\WithFileUploads;
+use Livewire\Attributes\Layout;
+
+#[Layout('layouts.app')]
+class CreateProduct extends Component
+{
+    use WithFileUploads;
+
+    public $name;
+    public $price;
+    public $city;
+    public $address_details;
+    public $contact_phone;
+    public $shop_name;
+    public $image;
+    public $added_by;
+    public $category;
+    public $sub_category;
+    public $brand;
+    public $categories = [];
+    public $categoriesList = [];
+    public $subCategories = [];
+    public $brands = [];
+    public $models = [];
+
+   public function render()
+{
+    $showBrandField = true;
+    
+    // إخفاء حقل الشركة إذا كان القسم هو "أجهزة كهربائية وطاقة"
+    if ($this->category === 'أجهزة كهربائية وطاقة') {
+        $showBrandField = false;
+    }
+
+    return view('livewire.create-product', [
+        'brands' => $this->getBrandsProperty(),
+        'models' => $this->models,
+        'showBrandField' => $showBrandField, // تمرير المتغير للـ view
+    ]);
+}
+protected function getElectricModels(?string $subCategory): array
+{
+    switch ($subCategory) {
+        case 'ثلاجة':
+            return [
+                'ثلاجة 300L Top Freezer',
+                'ثلاجة 500L French Door',
+                'ثلاجة 400L Side By Side',
+                'ثلاجة 600L InstaView',
+            ];
+        case 'غسالة':
+            return [
+                'غسالة 7KG Front Load',
+                'غسالة 10KG Top Load',
+                'غسالة 8KG Front Load',
+            ];
+        case 'شاشة تلفزيون':
+            return [
+                'شاشة 32 بوصة HD',
+                'شاشة 43 بوصة Full HD',
+                'شاشة 50 بوصة 4K',
+                'شاشة 55 بوصة OLED',
+            ];
+        case 'مولد كهرباء':
+            return [
+                'مولد 1 كيلو',
+                'مولد 2 كيلو',
+                'مولد 3 كيلو',
+                'مولد 5 كيلو',
+            ];
+        case 'نظام طاقة شمسية':
+            return [
+                'لوح طاقة 360 واط',
+                'لوح طاقة 450 واط',
+                'لوح طاقة 660 واط',
+            ];
+        case 'بطاريات':
+            return [
+                'بطارية 9 أمبير',
+                'بطارية 18 أمبير',
+                'بطارية 45 أمبير',
+                'بطارية 100 أمبير',
+                'بطارية 200 أمبير',
+            ];
+        case 'انفيرتر':
+            return [
+                'انفيرتر 0.5 كيلو',
+                'انفيرتر 1 كيلو',
+                'انفيرتر 1.5 كيلو',
+                'انفيرتر 2 كيلو',
+                'انفيرتر 2.5 كيلو',
+                'انفيرتر 3 كيلو',
+            ];
+        case 'مراوح':
+            return [
+                'مروحة سقف 120 سم',
+                'مروحة طاولة 40 سم',
+                'مروحة أرضية 50 سم',
+            ];
+        default:
+            return [];
+    }
+}
+
+    public function getSubCategoriesProperty()
+{
+    $subCategories = [];
+    if ($this->category) {
+        // البحث عن القسم في القائمة
+        $cat = collect($this->categoriesList)->firstWhere('name', $this->category);
+
+        // إذا تم العثور عليه وكان لديه subs
+        if ($cat && isset($cat['subs'])) {
+            $subs = $cat['subs'];
+            // التأكد من أن subs هو array
+            if (is_array($subs) && !empty($subs)) {
+                $subCategories = $subs;
+            } elseif (is_string($subs)) {
+                // إذا كان string، حاول تحويله إلى array
+                $decoded = json_decode($subs, true);
+                if (is_array($decoded) && !empty($decoded)) {
+                    $subCategories = $decoded;
+                }
+            }
+        }
+
+        // إذا لم يتم العثور عليه أو كان فارغاً، حاول البحث مباشرة من قاعدة البيانات
+        if (empty($subCategories)) {
+            $categoryModel = Category::where('name', $this->category)->first();
+            if ($categoryModel) {
+                $subs = $categoryModel->subs;
+                if (is_array($subs) && !empty($subs)) {
+                    $subCategories = $subs;
+                } elseif (is_string($subs)) {
+                    $decoded = json_decode($subs, true);
+                    if (is_array($decoded) && !empty($decoded)) {
+                        $subCategories = $decoded;
+                    }
+                }
+            }
+        }
+    }
+    return $subCategories;
+}
+
+    public function getBrandsProperty()
+    {
+        $brands = [];
+        if ($this->category && $this->sub_category) {
+            $brands = Product::query()
+                ->where('is_approved', true)
+                ->where('category', $this->category)
+                ->where('sub_category', $this->sub_category)
+                ->whereNotNull('brand')
+                ->where('brand', '!=', '')
+                ->select('brand')
+                ->distinct()
+                ->orderBy('brand')
+                ->pluck('brand')
+                ->toArray();
+
+            $staticBrands = $this->staticBrandsCatalog($this->category, $this->sub_category);
+            if (!empty($staticBrands)) {
+                $brands = array_values(array_unique(array_merge($staticBrands, $brands)));
+            }
+        }
+        return $brands;
+    }
+
+    public function getModelsProperty()
+    {
+        $models = [];
+    
+    // حالة خاصة: إذا كان القسم "أجهزة كهربائية وطاقة"
+    if ($this->category === 'أجهزة كهربائية وطاقة' && $this->sub_category) {
+        // استخدم دالة getElectricModels مباشرة
+        return $this->getElectricModels($this->sub_category);
+    }
+    
+    // الحالة العادية: للأقسام الأخرى (جوالات وإلكترونيات)
+    if ($this->category && $this->sub_category && $this->brand) {
+        // تنظيف القيم
+        $category = trim($this->category);
+        $subCategory = trim($this->sub_category);
+        $brand = trim($this->brand);
+
+        // جلب الموديلات الثابتة أولاً (من الكتالوج)
+        $staticModels = $this->staticModelsCatalog($category, $subCategory, $brand);
+            // جلب الموديلات من قاعدة البيانات
+            $dbModels = Product::query()
+                ->where('is_approved', true)
+                ->where('category', $category)
+                ->where('sub_category', $subCategory)
+                ->where('brand', $brand)
+                ->whereNotNull('name')
+                ->where('name', '!=', '')
+                ->selectRaw('name, MIN(created_at) as first_created_at')
+                ->groupBy('name')
+                ->orderBy('first_created_at', 'asc')
+                ->pluck('name')
+                ->toArray();
+
+            // دمج الموديلات الثابتة مع الموديلات من قاعدة البيانات
+            if (!empty($staticModels)) {
+                $models = array_values(array_unique(array_merge($staticModels, $dbModels)));
+            } else {
+                $models = $dbModels;
+            }
+        }
+        return $models;
+    }
+
+
+    protected function staticBrandsCatalog(?string $category, ?string $subCategory): array
+{
+    if ($category !== 'جوالات وإلكترونيات' || !$subCategory) {
+        return [];
+    }
+
+    if ($subCategory === 'جوال') {
+        return [
+            'Samsung',
+            'Apple',
+            'Xiaomi',
+            'Huawei',
+            'Google Pixel',
+            'OnePlus',
+            'Oppo',
+            'Vivo',
+            'Realme',
+            'Tecno',
+            'Infinix',
+            'Nokia',
+        ];
+    }
+
+    if ($subCategory === 'لابتوب') {
+        return [
+            'HP',
+            'Dell',
+            'Lenovo',
+            'Asus',
+            'Acer',
+            'MSI',
+            'Apple',
+            'Huawei',
+        ];
+    }
+
+    if ($subCategory === 'تابلت') {
+        return [
+            'Apple',
+            'Samsung',
+            'Huawei',
+            'Lenovo',
+        ];
+    }
+
+    if ($subCategory === 'سماعات') {
+        return [
+            'Apple',
+            'Sony',
+            'Bose',
+            'JBL',
+            'Samsung',
+            'Xiaomi',
+        ];
+    }
+
+    if ($subCategory === 'شواحن') {
+        return [
+            'Apple',
+            'Samsung',
+            'Xiaomi',
+            'Huawei',
+            'OnePlus',
+            'Anker',
+            'Baseus',
+        ];
+    }
+
+    if ($subCategory === 'اكسسوارات') {
+        return [
+            'Apple',
+            'Samsung',
+            'Xiaomi',
+            'Anker',
+            'Baseus',
+            'UGREEN',
+            'Belkin',
+            'JSAUX',
+        ];
+    }
+
+    if ($subCategory === 'صيانة') {
+        return [
+            'Apple',
+            'Samsung',
+            'Xiaomi',
+            'Huawei',
+            'Dell',
+            'HP',
+            'Lenovo',
+            'Asus',
+            'صيانة عامة',
+        ];
+    }
+
+    return [];
+}
+
+protected function staticModelsCatalog(?string $category, ?string $subCategory, ?string $brand): array
+{
+    // تنظيف القيم
+    $category = trim($category ?? '');
+    $subCategory = trim($subCategory ?? '');
+    $brand = trim($brand ?? '');
+
+    if ($category !== 'جوالات وإلكترونيات' || empty($subCategory) || empty($brand)) {
+        return [];
+    }
+
+    // -----------------
+    // جوالات (جوال) - الكود القديم محفوظ
+    // -----------------
+    if ($subCategory === 'جوال') {
+        if ($brand === 'Apple') {
+            return [
+                'iPhone (Original)',
+                'iPhone 3G',
+                'iPhone 3GS',
+                'iPhone 4',
+                'iPhone 4s',
+                'iPhone 5',
+                'iPhone 5c',
+                'iPhone 5s',
+                'iPhone 6',
+                'iPhone 6 Plus',
+                'iPhone 6s',
+                'iPhone 6s Plus',
+                'iPhone SE (1st Gen)',
+                'iPhone 7',
+                'iPhone 7 Plus',
+                'iPhone 8',
+                'iPhone 8 Plus',
+                'iPhone X',
+                'iPhone XR',
+                'iPhone XS',
+                'iPhone XS Max',
+                'iPhone 11',
+                'iPhone 11 Pro',
+                'iPhone 11 Pro Max',
+                'iPhone 12',
+                'iPhone 12 Mini',
+                'iPhone 12 Pro',
+                'iPhone 12 Pro Max',
+                'iPhone 13',
+                'iPhone 13 Mini',
+                'iPhone 13 Pro',
+                'iPhone 13 Pro Max',
+                'iPhone 14',
+                'iPhone 14 Plus',
+                'iPhone 14 Pro',
+                'iPhone 14 Pro Max',
+                'iPhone 15',
+                'iPhone 15 Plus',
+                'iPhone 15 Pro',
+                'iPhone 15 Pro Max',
+                'iPhone 16',
+                'iPhone 16 Plus',
+                'iPhone 16 Pro',
+                'iPhone 16 Pro Max',
+            ];
+        }
+
+        if ($brand === 'Samsung') {
+            return [
+                'Galaxy S (1st Gen)',
+                'Galaxy S2',
+                'Galaxy S3',
+                'Galaxy S4',
+                'Galaxy S5',
+                'Galaxy S6',
+                'Galaxy S6 Edge',
+                'Galaxy S7',
+                'Galaxy S7 Edge',
+                'Galaxy S8',
+                'Galaxy S8+',
+                'Galaxy S9',
+                'Galaxy S9+',
+                'Galaxy S10',
+                'Galaxy S10+',
+                'Galaxy S10e',
+                'Galaxy S20',
+                'Galaxy S20+',
+                'Galaxy S20 Ultra',
+                'Galaxy S21',
+                'Galaxy S21+',
+                'Galaxy S21 Ultra',
+                'Galaxy S22',
+                'Galaxy S22+',
+                'Galaxy S22 Ultra',
+                'Galaxy S23',
+                'Galaxy S23+',
+                'Galaxy S23 Ultra',
+                'Galaxy S24',
+                'Galaxy S24+',
+                'Galaxy S24 Ultra',
+                'Galaxy S25',
+                'Galaxy S25+',
+                'Galaxy S25 Ultra',
+                'Galaxy S25 Edge',
+                'Galaxy Note 1',
+                'Galaxy Note II',
+                'Galaxy Note 3',
+                'Galaxy Note 4',
+                'Galaxy Note 5',
+                'Galaxy Note 7',
+                'Galaxy Note 8',
+                'Galaxy Note 9',
+                'Galaxy Note 10',
+                'Galaxy Note 10+',
+                'Galaxy Note 20',
+                'Galaxy Note 20 Ultra',
+                'Galaxy Z Flip',
+                'Galaxy Z Fold 2',
+                'Galaxy Z Flip 3',
+                'Galaxy Z Fold 3',
+                'Galaxy Z Flip 4',
+                'Galaxy Z Fold 4',
+                'Galaxy Z Flip 5',
+                'Galaxy Z Fold 5',
+                'Galaxy Z Flip 6',
+                'Galaxy Z Fold 6',
+                'Galaxy A01',
+                'Galaxy A02',
+                'Galaxy A02s',
+                'Galaxy A03',
+                'Galaxy A03s',
+                'Galaxy A10',
+                'Galaxy A10s',
+                'Galaxy A11',
+                'Galaxy A12',
+                'Galaxy A14',
+                'Galaxy A14 5G',
+                'Galaxy A21s',
+                'Galaxy A22',
+                'Galaxy A22 5G',
+                'Galaxy A23',
+                'Galaxy A23 5G',
+                'Galaxy A24',
+                'Galaxy A32',
+                'Galaxy A32 5G',
+                'Galaxy A33 5G',
+                'Galaxy A34',
+                'Galaxy A35',
+                'Galaxy A41',
+                'Galaxy A42 5G',
+                'Galaxy A50',
+                'Galaxy A50s',
+                'Galaxy A51',
+                'Galaxy A51 5G',
+                'Galaxy A52',
+                'Galaxy A52s 5G',
+                'Galaxy A53 5G',
+                'Galaxy A54',
+                'Galaxy A55',
+                'Galaxy A56 5G',
+                'Galaxy M01',
+                'Galaxy M02',
+                'Galaxy M05',
+                'Galaxy M10',
+                'Galaxy M10s',
+                'Galaxy M11',
+                'Galaxy M12',
+                'Galaxy M20',
+                'Galaxy M21',
+                'Galaxy M30',
+                'Galaxy M30s',
+                'Galaxy M31',
+                'Galaxy M32',
+                'Galaxy M32 5G',
+                'Galaxy M33',
+                'Galaxy M33 5G',
+                'Galaxy M52',
+                'Galaxy M52 5G',
+                'Galaxy M53',
+                'Galaxy M54 5G',
+            ];
+        }
+
+        if ($brand === 'Xiaomi') {
+            return [
+                'Mi 1',
+                'Mi 2',
+                'Mi 3',
+                'Mi 4',
+                'Mi 5',
+                'Mi 5s',
+                'Mi 5X',
+                'Mi 6',
+                'Mi 8',
+                'Mi 9',
+                'Mi 10',
+                'Mi 10 Pro',
+                'Mi 11',
+                'Mi 11 Ultra',
+                'Mi 12',
+                'Mi 12 Pro',
+                'Mi 12X',
+                'Mi 13',
+                'Mi 13 Pro',
+                'Mi 14',
+                'Mi 14 Ultra',
+                'Redmi 1',
+                'Redmi 2',
+                'Redmi 3',
+                'Redmi 4',
+                'Redmi 5',
+                'Redmi 6',
+                'Redmi 7',
+                'Redmi 8',
+                'Redmi 9',
+                'Redmi 10',
+                'Redmi 11',
+                'Redmi 12',
+                'Redmi 13',
+                'Redmi Note 8',
+                'Redmi Note 9',
+                'Redmi Note 10',
+                'Redmi Note 11',
+                'Redmi Note 12',
+                'Redmi Note 13',
+                'Redmi Note 14 Pro',
+                'Poco F1',
+                'Poco F2',
+                'Poco F2 Pro',
+                'Poco F3',
+                'Poco F4',
+                'Poco F5',
+                'Poco F5 Pro',
+                'Poco X3',
+                'Poco X4',
+                'Poco X5',
+                'Poco M3',
+                'Poco M4',
+                'Poco M5',
+            ];
+        }
+
+        if ($brand === 'Huawei') {
+            return [
+                'Huawei P7',
+                'Huawei P8',
+                'Huawei P8 Lite',
+                'Huawei P9',
+                'Huawei P9 Plus',
+                'Huawei P10',
+                'Huawei P20',
+                'Huawei P30',
+                'Huawei P40',
+                'Huawei P50',
+                'Huawei P60',
+                'Huawei Mate 7',
+                'Huawei Mate 8',
+                'Huawei Mate 9',
+                'Huawei Mate 10',
+                'Huawei Mate 20',
+                'Huawei Mate 30',
+                'Huawei Mate 40',
+                'Huawei Mate 50',
+                'Huawei Mate 60',
+                'Huawei Nova 1',
+                'Huawei Nova 2',
+                'Huawei Nova 2i',
+                'Huawei Nova 3',
+                'Huawei Nova 3i',
+                'Huawei Nova 4',
+                'Huawei Nova 4e',
+                'Huawei Nova 5T',
+            ];
+        }
+
+        if ($brand === 'Google' || $brand === 'Google Pixel') {
+            return [
+                'Pixel',
+                'Pixel 2',
+                'Pixel 3',
+                'Pixel 4',
+                'Pixel 5',
+                'Pixel 6',
+                'Pixel 7',
+                'Pixel 8',
+                'Pixel 9',
+            ];
+        }
+
+        if ($brand === 'OnePlus') {
+            return [
+                'OnePlus 1',
+                'OnePlus 2',
+                'OnePlus 3',
+                'OnePlus 3T',
+                'OnePlus 5',
+                'OnePlus 5T',
+                'OnePlus 6',
+                'OnePlus 6T',
+                'OnePlus 7',
+                'OnePlus 7T',
+                'OnePlus 8',
+                'OnePlus 8T',
+                'OnePlus 9',
+                'OnePlus 10',
+                'OnePlus 11',
+            ];
+        }
+
+        if ($brand === 'Oppo') {
+            return [
+                'Oppo Find 5',
+                'Oppo Find 7',
+                'Oppo Find X',
+                'Oppo Find X2',
+                'Oppo Find X3',
+                'Oppo Find X5',
+                'Oppo Find X6',
+                'Oppo Find X7',
+                'Oppo Reno',
+                'Oppo Reno 2',
+                'Oppo Reno 3',
+                'Oppo Reno 4',
+                'Oppo Reno 5',
+                'Oppo Reno 6',
+                'Oppo Reno 7',
+                'Oppo Reno 8',
+                'Oppo Reno 9',
+                'Oppo Reno 10',
+                'Oppo A5',
+                'Oppo A7',
+                'Oppo A9',
+                'Oppo A12',
+                'Oppo A15',
+                'Oppo A16',
+                'Oppo A17',
+                'Oppo A18',
+                'Oppo A38',
+                'Oppo A58',
+                'Oppo A78',
+            ];
+        }
+
+        if ($brand === 'Vivo') {
+            return [
+                'Vivo X1',
+                'Vivo X5',
+                'Vivo X7',
+                'Vivo X9',
+                'Vivo X20',
+                'Vivo X21',
+                'Vivo X23',
+                'Vivo X27',
+                'Vivo X30',
+                'Vivo X50',
+                'Vivo X60',
+                'Vivo X70',
+                'Vivo X80',
+                'Vivo X90',
+                'Vivo Y15',
+                'Vivo Y20',
+                'Vivo Y21',
+                'Vivo Y33',
+                'Vivo Y53',
+                'Vivo Y73',
+                'Vivo Y100',
+            ];
+        }
+
+        if ($brand === 'Realme') {
+            return [
+                'Realme 1',
+                'Realme 2',
+                'Realme 3',
+                'Realme 5',
+                'Realme 6',
+                'Realme 7',
+                'Realme 8',
+                'Realme 9',
+                'Realme 10',
+                'Realme 11',
+                'Realme C1',
+                'Realme C3',
+                'Realme C11',
+                'Realme C15',
+                'Realme C25',
+                'Realme C33',
+                'Realme C55',
+                'Realme GT',
+                'Realme GT 2',
+                'Realme GT 3',
+                'Realme GT 5',
+            ];
+        }
+
+        if ($brand === 'Tecno') {
+            return [
+                'Tecno Phantom A',
+                'Tecno Phantom 6',
+                'Tecno Phantom 8',
+                'Tecno Phantom 9',
+                'Tecno Phantom X',
+                'Tecno Phantom X2',
+                'Tecno Spark',
+                'Tecno Spark 2',
+                'Tecno Spark 3',
+                'Tecno Spark 4',
+                'Tecno Spark 5',
+                'Tecno Spark 6',
+                'Tecno Spark 7',
+                'Tecno Spark 8',
+                'Tecno Spark 9',
+                'Tecno Spark 10',
+                'Tecno Camon',
+                'Tecno Camon 11',
+                'Tecno Camon 12',
+                'Tecno Camon 15',
+                'Tecno Camon 18',
+                'Tecno Camon 20',
+                'Tecno Pova',
+                'Tecno Pova 2',
+                'Tecno Pova 4',
+                'Tecno Pova 5',
+            ];
+        }
+
+        if ($brand === 'Infinix') {
+            return [
+                'Infinix Zero',
+                'Infinix Zero 2',
+                'Infinix Zero 3',
+                'Infinix Zero 4',
+                'Infinix Zero 5',
+                'Infinix Zero 6',
+                'Infinix Zero 8',
+                'Infinix Zero X',
+                'Infinix Zero 30',
+                'Infinix Hot',
+                'Infinix Hot 3',
+                'Infinix Hot 4',
+                'Infinix Hot 5',
+                'Infinix Hot 6',
+                'Infinix Hot 7',
+                'Infinix Hot 8',
+                'Infinix Hot 9',
+                'Infinix Hot 10',
+                'Infinix Hot 11',
+                'Infinix Hot 12',
+                'Infinix Hot 30',
+                'Infinix Note',
+                'Infinix Note 3',
+                'Infinix Note 4',
+                'Infinix Note 5',
+                'Infinix Note 7',
+                'Infinix Note 10',
+                'Infinix Note 12',
+                'Infinix Note 30',
+            ];
+        }
+
+        if ($brand === 'Nokia') {
+            return [
+                'Nokia Lumia 520',
+                'Nokia Lumia 720',
+                'Nokia Lumia 820',
+                'Nokia Lumia 920',
+                'Nokia 3',
+                'Nokia 5',
+                'Nokia 6',
+                'Nokia 7',
+                'Nokia 8',
+                'Nokia 2.1',
+                'Nokia 3.1',
+                'Nokia 5.1',
+                'Nokia 6.1',
+                'Nokia 7.1',
+                'Nokia 8.1',
+                'Nokia 1',
+                'Nokia 2',
+                'Nokia 4.2',
+                'Nokia G10',
+                'Nokia G20',
+                'Nokia G21',
+                'Nokia G22',
+                'Nokia X10',
+                'Nokia X20',
+            ];
+        }
+
+        return [];
+    }
+
+    // -----------------
+    // لابتوبات (لابتوب) - الكود القديم محفوظ
+    // -----------------
+    if ($subCategory === 'لابتوب') {
+        if ($brand === 'HP') {
+            return [
+                'HP Notebook 14 - 14-ac000 | Intel i3 | 4GB RAM | 128GB SSD | Intel HD | 14" FHD | Win 10',
+                'HP Notebook 14 - 14-ac100 | Intel i5 | 8GB RAM | 256GB SSD | Intel HD | 14" FHD | Win 10',
+                'HP Notebook 14 - 14-ac200 | Intel i5 | 8GB RAM | 512GB SSD | Intel UHD | 14" FHD | Win 10',
+                'HP Notebook 14 - 14s-dk001 | Intel i3 | 8GB RAM | 256GB SSD | Intel UHD | 14" FHD | Win 10',
+                'HP Notebook 14 - 14s-dq100 | Intel i5 | 16GB RAM | 512GB SSD | Intel Iris | 14" FHD | Win 11',
+                'HP Notebook 14 - 14s-fq001 | Intel i7 | 16GB RAM | 1TB SSD | Intel Iris Xe | 14" FHD | Win 11',
+
+                'HP Notebook 15 - 15-af000 | Intel i3 | 4GB RAM | 128GB SSD | Intel HD | 15.6" FHD | Win 10',
+                'HP Notebook 15 - 15-af100 | Intel i5 | 8GB RAM | 256GB SSD | Intel HD | 15.6" FHD | Win 10',
+                'HP Notebook 15 - 15-af200 | Intel i5 | 8GB RAM | 512GB SSD | Intel UHD | 15.6" FHD | Win 10',
+                'HP Notebook 15 - 15s-du001 | Intel i5 | 8GB RAM | 256GB SSD | Intel UHD | 15.6" FHD | Win 10',
+                'HP Notebook 15 - 15s-dw301 | Intel i7 | 16GB RAM | 512GB SSD | Intel Iris Xe | 15.6" FHD | Win 11',
+
+                'HP Notebook 17 - 17-x000 | Intel i5 | 8GB RAM | 256GB SSD | Intel HD | 17" FHD | Win 10',
+                'HP Notebook 17 - 17-x100 | Intel i7 | 16GB RAM | 512GB SSD | Intel Iris | 17" FHD | Win 10',
+                'HP Notebook 17 - 17-cp300 | Intel i7 | 16GB RAM | 1TB SSD | Intel Iris Xe | 17" FHD | Win 11',
+
+                'HP ProBook - 430 G7 | Intel i5 | 8GB RAM | 256GB SSD | Intel UHD | 13.3" FHD | Win 10',
+                'HP ProBook - 440 G8 | Intel i5 | 16GB RAM | 512GB SSD | Intel Iris Xe | 14" FHD | Win 11',
+                'HP ProBook - 450 G7 | Intel i5 | 8GB RAM | 256GB SSD | Intel UHD | 15.6" FHD | Win 10',
+                'HP ProBook - 470 G8 | Intel i7 | 16GB RAM | 512GB SSD | Intel Iris Xe | 17.3" FHD | Win 11',
+
+                'HP EliteBook - 830 G7 | Intel i5 | 8GB RAM | 256GB SSD | Intel UHD | 13.3" FHD | Win 10',
+                'HP EliteBook - 840 G8 | Intel i7 | 16GB RAM | 512GB SSD | Intel Iris Xe | 14" FHD | Win 11',
+                'HP EliteBook - 850 G8 | Intel i7 | 16GB RAM | 1TB SSD | Intel Iris Xe | 15.6" FHD | Win 11',
+
+                'HP Pavilion 14 | Intel i3 | 4GB RAM | 128GB SSD | Intel HD | 14" FHD | Win 10',
+                'HP Pavilion 15 | Intel i5 | 8GB RAM | 256GB SSD | Intel UHD | 15.6" FHD | Win 10',
+                'HP Pavilion 17 | Intel i7 | 16GB RAM | 512GB SSD | Intel Iris | 17.3" FHD | Win 11',
+
+                'HP Spectre x360 13 | Intel i5 | 8GB RAM | 256GB SSD | Intel Iris | 13.3" FHD | Win 11',
+                'HP Spectre x360 15 | Intel i7 | 16GB RAM | 512GB SSD | Intel Iris Xe | 15.6" FHD | Win 11',
+            ];
+        }
+
+        if ($brand === 'Dell') {
+            return [
+                'Dell XPS 13 - 2015 | Intel i5 | 8GB RAM | 256GB SSD | Intel HD | 13.3" FHD | Win 10',
+                'Dell XPS 13 - 2016 | Intel i5 | 8GB RAM | 256GB SSD | Intel HD | 13.3" FHD | Win 10',
+                'Dell XPS 13 - 2017 | Intel i7 | 16GB RAM | 512GB SSD | Intel HD | 13.3" FHD | Win 10',
+                'Dell XPS 13 - 2018 | Intel i7 | 16GB RAM | 512GB SSD | Intel UHD | 13.3" FHD | Win 10',
+                'Dell XPS 13 - 2019 | Intel i7 | 16GB RAM | 512GB SSD | Intel UHD | 13.3" FHD | Win 10',
+                'Dell XPS 13 - 2020 | Intel i7 | 16GB RAM | 1TB SSD | Intel Iris Plus | 13.3" FHD | Win 10',
+                'Dell XPS 13 - 2021 | Intel i7 | 16GB RAM | 1TB SSD | Intel Iris Xe | 13.3" FHD | Win 11',
+                'Dell XPS 13 - 2022 | Intel i7 | 32GB RAM | 2TB SSD | Intel Iris Xe | 13.3" FHD | Win 11',
+                'Dell XPS 13 - 2023 | Intel i7 | 32GB RAM | 2TB SSD | Intel Iris Xe | 13.3" FHD | Win 11',
+                'Dell XPS 13 - 2024 | Intel i9 | 32GB RAM | 2TB SSD | Intel Iris Xe | 13.3" 4K | Win 11',
+
+                'Dell XPS 15 - 2015 | Intel i7 | 16GB RAM | 512GB SSD | Nvidia GTX 960M | 15.6" FHD | Win 10',
+                'Dell XPS 15 - 2016 | Intel i7 | 16GB RAM | 512GB SSD | Nvidia GTX 960M | 15.6" FHD | Win 10',
+                'Dell XPS 15 - 2017 | Intel i7 | 16GB RAM | 512GB SSD | Nvidia GTX 1050 | 15.6" FHD | Win 10',
+                'Dell XPS 15 - 2018 | Intel i7 | 16GB RAM | 1TB SSD | Nvidia GTX 1050 Ti | 15.6" FHD | Win 10',
+                'Dell XPS 15 - 2019 | Intel i7 | 16GB RAM | 1TB SSD | Nvidia GTX 1650 | 15.6" FHD | Win 10',
+                'Dell XPS 15 - 2020 | Intel i7 | 16GB RAM | 1TB SSD | Nvidia GTX 1650 Ti | 15.6" FHD | Win 10',
+                'Dell XPS 15 - 2021 | Intel i7 | 32GB RAM | 2TB SSD | Nvidia RTX 3050 Ti | 15.6" FHD | Win 11',
+                'Dell XPS 15 - 2022 | Intel i7 | 32GB RAM | 2TB SSD | Nvidia RTX 3060 | 15.6" FHD | Win 11',
+                'Dell XPS 15 - 2023 | Intel i9 | 32GB RAM | 2TB SSD | Nvidia RTX 4060 | 15.6" FHD | Win 11',
+                'Dell XPS 15 - 2024 | Intel i9 | 64GB RAM | 4TB SSD | Nvidia RTX 4070 | 15.6" 4K | Win 11',
+
+                'Dell Inspiron 13 | Intel i5 | 8GB RAM | 256GB SSD | Intel HD | 13.3" FHD | Win 10',
+                'Dell Inspiron 15 | Intel i5 | 8GB RAM | 256GB SSD | Intel HD | 15.6" FHD | Win 10',
+                'Dell Inspiron 17 | Intel i7 | 16GB RAM | 512GB SSD | Intel UHD | 17.3" FHD | Win 10',
+            ];
+        }
+
+        if ($brand === 'Lenovo') {
+            return [
+                'Lenovo ThinkPad X1 Carbon Gen1 | Intel i5 | 8GB RAM | 256GB SSD | Intel HD | 14" FHD | Win 10',
+                'Lenovo ThinkPad X1 Carbon Gen2 | Intel i5 | 8GB RAM | 256GB SSD | Intel HD | 14" FHD | Win 10',
+                'Lenovo ThinkPad X1 Carbon Gen3 | Intel i7 | 16GB RAM | 512GB SSD | Intel HD | 14" FHD | Win 10',
+                'Lenovo ThinkPad T440 | Intel i5 | 8GB RAM | 256GB SSD | Intel HD | 14" FHD | Win 10',
+                'Lenovo ThinkPad T450 | Intel i5 | 8GB RAM | 512GB SSD | Intel UHD | 14" FHD | Win 10',
+                'Lenovo ThinkPad T460 | Intel i7 | 16GB RAM | 512GB SSD | Intel UHD | 14" FHD | Win 10',
+
+                'Lenovo Yoga 3 2015 | Intel i5 | 8GB RAM | 256GB SSD | Intel HD | 13.3" FHD | Win 10',
+                'Lenovo Yoga 500 | Intel i5 | 8GB RAM | 256GB SSD | Intel HD | 15.6" FHD | Win 10',
+                'Lenovo Yoga 7 2020 | Intel i7 | 16GB RAM | 512GB SSD | Intel Iris | 14" FHD | Win 10',
+                'Lenovo Yoga 9 2022 | Intel i7 | 32GB RAM | 1TB SSD | Intel Iris Xe | 14" 4K | Win 11',
+
+                'Lenovo IdeaPad 100 | Intel i3 | 4GB RAM | 128GB SSD | Intel HD | 14" FHD | Win 10',
+                'Lenovo IdeaPad 300 | Intel i5 | 8GB RAM | 256GB SSD | Intel HD | 15.6" FHD | Win 10',
+                'Lenovo IdeaPad 500 | Intel i7 | 16GB RAM | 512GB SSD | Intel UHD | 15.6" FHD | Win 10',
+                'Lenovo IdeaPad 700 | Intel i7 | 32GB RAM | 1TB SSD | Intel Iris Xe | 15.6" FHD | Win 11',
+            ];
+        }
+
+        if ($brand === 'Asus') {
+            return [
+                'Asus ZenBook UX305 | Intel i5 | 8GB RAM | 256GB SSD | Intel HD | 13.3" FHD | Win 10',
+                'Asus ZenBook UX330 | Intel i7 | 16GB RAM | 512GB SSD | Intel UHD | 13.3" FHD | Win 10',
+                'Asus ZenBook UX435 | Intel i7 | 16GB RAM | 512GB SSD | Intel Iris Xe | 14" FHD | Win 11',
+
+                'Asus ROG G501 | Intel i7 | 16GB RAM | 512GB SSD | Nvidia GTX 960M | 15.6" FHD | Win 10',
+                'Asus ROG G531 | Intel i7 | 16GB RAM | 1TB SSD | Nvidia GTX 1060 | 15.6" FHD | Win 10',
+                'Asus ROG Zephyrus G14 | AMD Ryzen 9 | 32GB RAM | 1TB SSD | Nvidia RTX 3060 | 14" QHD | Win 11',
+
+                'Asus VivoBook S15 | Intel i5 | 8GB RAM | 512GB SSD | Intel UHD | 15.6" FHD | Win 10',
+                'Asus VivoBook S14 | Intel i7 | 16GB RAM | 512GB SSD | Intel Iris Xe | 14" FHD | Win 11',
+            ];
+        }
+
+        if ($brand === 'Apple') {
+            return [
+                'Apple MacBook Air 2015 | Intel i5 | 8GB RAM | 128GB SSD | Intel HD | 13.3" Retina | macOS',
+                'Apple MacBook Air 2016 | Intel i5 | 8GB RAM | 256GB SSD | Intel HD | 13.3" Retina | macOS',
+                'Apple MacBook Air 2017 | Intel i5 | 8GB RAM | 256GB SSD | Intel HD | 13.3" Retina | macOS',
+                'Apple MacBook Air M1 2020 | Apple M1 | 8GB RAM | 256GB SSD | Apple GPU | 13.3" Retina | macOS',
+                'Apple MacBook Air M2 2022 | Apple M2 | 8GB RAM | 256GB SSD | Apple GPU | 13.6" Retina | macOS',
+
+                'Apple MacBook Pro 13" 2015 | Intel i5 | 8GB RAM | 256GB SSD | Intel Iris | 13" Retina | macOS',
+                'Apple MacBook Pro 14" M1 Pro 2021 | Apple M1 Pro | 16GB RAM | 512GB SSD | Apple GPU | 14" Retina | macOS',
+                'Apple MacBook Pro 16" 2019 | Intel i9 | 32GB RAM | 1TB SSD | AMD Radeon | 16" Retina | macOS',
+                'Apple MacBook Pro 16" M1 Max 2021 | Apple M1 Max | 32GB RAM | 1TB SSD | Apple GPU | 16" Retina | macOS',
+            ];
+        }
+
+        if ($brand === 'Acer') {
+            return [
+                'Acer Aspire 1 2016 | Intel Celeron | 4GB RAM | 64GB eMMC | Intel HD | 14" HD | Win 10',
+                'Acer Aspire 3 2017 | Intel i3 | 4GB RAM | 128GB SSD | Intel HD | 15.6" FHD | Win 10',
+                'Acer Aspire 5 2018 | Intel i5 | 8GB RAM | 256GB SSD | Intel UHD | 15.6" FHD | Win 10',
+                'Acer Aspire 5 2019 | Intel i5 | 8GB RAM | 512GB SSD | Intel UHD | 15.6" FHD | Win 10',
+                'Acer Aspire 5 2020 | Intel i7 | 16GB RAM | 512GB SSD | Intel UHD | 15.6" FHD | Win 10',
+                'Acer Aspire 7 2021 | AMD Ryzen 5 | 8GB RAM | 512GB SSD | NVIDIA GTX 1650 | 15.6" FHD | Win 10',
+                'Acer Swift 3 2019 | Intel i5 | 8GB RAM | 256GB SSD | Intel UHD | 14" FHD | Win 10',
+                'Acer Swift 3 2020 | Intel i5 | 8GB RAM | 512GB SSD | Intel UHD | 14" FHD | Win 10',
+                'Acer Swift 3 2021 | AMD Ryzen 5 | 8GB RAM | 512GB SSD | AMD Vega | 14" FHD | Win 10',
+                'Acer Swift 3 2022 | AMD Ryzen 5 | 16GB RAM | 512GB SSD | AMD Vega | 14" FHD | Win 11',
+                'Acer Predator Helios 300 2020 | Intel i7 | 16GB RAM | 512GB SSD | NVIDIA GTX 1660Ti | 15.6" FHD | Win 10',
+                'Acer Predator Helios 300 2021 | Intel i7 | 16GB RAM | 1TB SSD | NVIDIA RTX 3060 | 15.6" FHD | Win 11',
+                'Acer Predator Helios 300 2022 | Intel i7 | 16GB RAM | 1TB SSD | NVIDIA RTX 3060 | 15.6" FHD | Win 11',
+                'Acer Predator Helios 300 2023 | Intel i7 | 16GB RAM | 1TB SSD | NVIDIA RTX 3060 | 15.6" FHD | Win 11',
+            ];
+        }
+
+        if ($brand === 'MSI') {
+            return [
+                'MSI GF63 Thin 2019 | Intel i5 | 8GB RAM | 256GB SSD | NVIDIA GTX 1050 | 15.6" FHD | Win 10',
+                'MSI GF63 Thin 2020 | Intel i5 | 8GB RAM | 512GB SSD | NVIDIA GTX 1650 | 15.6" FHD | Win 10',
+                'MSI GF63 Thin 2021 | Intel i7 | 16GB RAM | 512GB SSD | NVIDIA GTX 1660Ti | 15.6" FHD | Win 10',
+                'MSI Stealth 15M 2021 | Intel i7 | 16GB RAM | 512GB SSD | NVIDIA RTX 3050 | 15.6" FHD | Win 10',
+                'MSI Stealth 15M 2022 | Intel i7 | 16GB RAM | 1TB SSD | NVIDIA RTX 3060 | 15.6" FHD | Win 11',
+                'MSI Stealth 15M 2023 | Intel i7 | 16GB RAM | 1TB SSD | NVIDIA RTX 3060 | 15.6" FHD | Win 11',
+            ];
+        }
+
+        if ($brand === 'Huawei') {
+            return [
+                'Huawei MateBook D 14 2017 | Intel i5 | 8GB RAM | 256GB SSD | Intel HD | 14" FHD | Win 10',
+                'Huawei MateBook D 14 2018 | Intel i5 | 8GB RAM | 512GB SSD | Intel UHD | 14" FHD | Win 10',
+                'Huawei MateBook D 14 2019 | AMD Ryzen 5 | 8GB RAM | 512GB SSD | AMD Vega | 14" FHD | Win 10',
+                'Huawei MateBook D 14 2020 | AMD Ryzen 5 | 8GB RAM | 512GB SSD | AMD Vega | 14" FHD | Win 10',
+                'Huawei MateBook D 14 2021 | AMD Ryzen 5 | 8GB RAM | 512GB SSD | AMD Vega | 14" FHD | Win 10',
+                'Huawei MateBook 13 2018 | Intel i5 | 8GB RAM | 256GB SSD | Intel HD | 13" FHD | Win 10',
+                'Huawei MateBook 13 2019 | Intel i7 | 16GB RAM | 512GB SSD | Intel Iris | 13" FHD | Win 10',
+                'Huawei MateBook 13 2020 | Intel i7 | 16GB RAM | 512GB SSD | Intel Iris | 13" FHD | Win 10',
+                'Huawei MateBook 13 2021 | Intel i7 | 16GB RAM | 512GB SSD | Intel Iris Xe | 13" FHD | Win 11',
+                'Huawei MateBook 13 2022 | Intel i7 | 16GB RAM | 512GB SSD | Intel Iris Xe | 13" FHD | Win 11',
+            ];
+        }
+
+        return [];
+    }
+
+    // 📱 تابلت – Tablets
+    if ($subCategory === 'تابلت') {
+        if ($brand === 'Apple') {
+            return [
+                'iPad 1', 'iPad 2', 'iPad 3', 'iPad 4', 'iPad 5', 'iPad 6', 'iPad 7', 'iPad 8', 'iPad 9', 'iPad 10',
+                'iPad Air 1', 'iPad Air 2', 'iPad Air 3', 'iPad Air 4', 'iPad Air 5', 'iPad Air 6',
+                'iPad Mini 1', 'iPad Mini 2', 'iPad Mini 3', 'iPad Mini 4', 'iPad Mini 5', 'iPad Mini 6',
+                'iPad Pro 9.7', 'iPad Pro 10.5', 'iPad Pro 11 (2018)', 'iPad Pro 11 (2020)', 'iPad Pro 11 (2021)', 'iPad Pro 11 (2022)', 'iPad Pro 11 (2024)',
+                'iPad Pro 12.9 (2015)', 'iPad Pro 12.9 (2016)', 'iPad Pro 12.9 (2017)', 'iPad Pro 12.9 (2018)', 'iPad Pro 12.9 (2020)', 'iPad Pro 12.9 (2021)', 'iPad Pro 12.9 (2022)', 'iPad Pro 12.9 (2024)'
+            ];
+        }
+
+        if ($brand === 'Samsung') {
+            return [
+                'Galaxy Tab A 7', 'Galaxy Tab A 8', 'Galaxy Tab A 9', 'Galaxy Tab A 10', 'Galaxy Tab A 10.1', 'Galaxy Tab A 10.5',
+                'Galaxy Tab S 8', 'Galaxy Tab S 9', 'Galaxy Tab S 10', 'Galaxy Tab S 10+', 'Galaxy Tab S 11', 'Galaxy Tab S 12',
+                'Galaxy Tab S Lite', 'Galaxy Tab S Pro'
+            ];
+        }
+
+        if ($brand === 'Huawei') {
+            return [
+                'MediaPad T1', 'MediaPad T2', 'MediaPad T3', 'MediaPad T5', 'MediaPad T8', 'MediaPad T10', 'MediaPad T10s',
+                'MatePad 10.4', 'MatePad Pro 10.8', 'MatePad 11'
+            ];
+        }
+
+        if ($brand === 'Lenovo') {
+            return [
+                'Tab M7', 'Tab M8', 'Tab M10', 'Tab P11', 'Tab P11 Pro', 'Yoga Tab 11', 'Yoga Tab 13'
+            ];
+        }
+    }
+
+    // 🎧 سماعات – Headphones / Earbuds
+    if ($subCategory === 'سماعات') {
+        if ($brand === 'Apple') {
+            return [
+                'AirPods 1', 'AirPods 2', 'AirPods 3', 'AirPods Pro 1', 'AirPods Pro 2', 'AirPods Max'
+            ];
+        }
+
+        if ($brand === 'Sony') {
+            return [
+                'WH-1000XM2', 'WH-1000XM3', 'WH-1000XM4', 'WH-1000XM5', 'WH-1000XM6',
+                'WF-1000XM3', 'WF-1000XM4', 'WF-1000XM5'
+            ];
+        }
+
+        if ($brand === 'Bose') {
+            return [
+                'QuietComfort 35', 'QC 45', '700', 'Headphones 800', 'SoundSport', 'SoundLink'
+            ];
+        }
+
+        if ($brand === 'JBL') {
+            return [
+                'T110', 'T120', 'TUNE 500', 'TUNE 510', 'TUNE 600', 'Live 500', 'Live 650', 'Live Pro'
+            ];
+        }
+
+        if ($brand === 'Samsung') {
+            return [
+                'Galaxy Buds', 'Galaxy Buds+', 'Galaxy Buds Live', 'Galaxy Buds Pro', 'Galaxy Buds2', 'Galaxy Buds2 Pro', 'Galaxy Buds FE'
+            ];
+        }
+
+        if ($brand === 'Xiaomi') {
+            return [
+                'Redmi AirDots', 'AirDots S', 'Air 2', 'Air 2S', 'Air 3', 'Air 3 Pro', 'Air 4'
+            ];
+        }
+    }
+
+    // 🔌 شواحن – Chargers
+    if ($subCategory === 'شواحن') {
+        if ($brand === 'Apple') {
+            return [
+                'Lightning Charger 5W', 'Lightning Charger 12W', 'Lightning Charger 18W', 'Lightning Charger 20W', 
+                'MagSafe Charger 15W', 'MagSafe Duo'
+            ];
+        }
+
+        if ($brand === 'Samsung') {
+            return [
+                'Adaptive Fast Charging 15W', 'Adaptive Fast Charging 25W', 'Adaptive Fast Charging 45W',
+                'Wireless Charger Pad', 'Wireless Charger Duo'
+            ];
+        }
+
+        if ($brand === 'Xiaomi') {
+            return [
+                'Mi Charger 18W', 'Mi Charger 33W', 'Mi Charger 50W', 'Mi Charger 120W HyperCharge',
+                'Wireless Charger 30W', 'Wireless Charger 50W'
+            ];
+        }
+
+        if ($brand === 'Huawei') {
+            return [
+                'SuperCharge 22.5W', 'SuperCharge 40W', 'SuperCharge 66W', 'SuperCharge 100W',
+                'Wireless SuperCharge 27W', 'Wireless SuperCharge 50W'
+            ];
+        }
+
+        if ($brand === 'OnePlus') {
+            return [
+                'Warp Charge 30W', 'Warp Charge 45W', 'Warp Charge 65W', 'Warp Charge 80W'
+            ];
+        }
+    }
+
+    // 🧩 اكسسوارات – Accessories
+    if ($subCategory === 'اكسسوارات') {
+        return [
+            'كفر حماية Silicone', 'كفر حماية Leather', 'كفر حماية Rugged',
+            'واقي شاشة Tempered Glass', 'واقي شاشة Anti-Glare', 'واقي شاشة Privacy',
+            'حامل هاتف', 'ستاند هاتف', 'سماعات رأس', 'سماعات بلوتوث',
+            'كابل USB-C', 'كابل Lightning', 'كابل Micro-USB',
+            'Power Bank 10000', 'Power Bank 20000', 'حقيبة لابتوب', 'شنطة لابتوب',
+            'وسادة تبريد لابتوب', 'Docking Station', 'قلم ذكي Stylus',
+            'ماوس لاسلكي', 'لوحة مفاتيح لاسلكية', 'كارت ذاكرة SD', 'كارت ذاكرة MicroSD',
+            'محول HDMI', 'محول USB-C', 'محول VGA', 'محول صوت Jack', 'محول بلوتوث',
+            'سماعات Bluetooth'
+        ];
+    }
+
+    // 🛠️ صيانة – Repair / Service
+    if ($subCategory === 'صيانة') {
+        if ($brand === 'Apple') {
+            return [
+                'صيانة iPhone', 'صيانة iPad', 'صيانة MacBook', 'صيانة Apple Watch', 'صيانة AirPods',
+                'استبدال بطارية Apple', 'اصلاح شاشة Apple', 'اصلاح كاميرا Apple', 'اصلاح زرار Apple'
+            ];
+        }
+
+        if ($brand === 'Samsung') {
+            return [
+                'صيانة Samsung هاتف', 'صيانة Samsung لابتوب', 'صيانة Samsung تابلت',
+                'استبدال شاشة Samsung', 'استبدال بطارية Samsung', 'اصلاح شحن Samsung'
+            ];
+        }
+
+        return [
+            'استبدال شاشة هاتف', 'استبدال بطارية هاتف', 'اصلاح شحن هاتف', 'اصلاح USB Port هاتف',
+            'اصلاح كاميرا هاتف', 'اصلاح زرار هاتف', 'استبدال شاشة لابتوب', 'استبدال بطارية لابتوب',
+            'اصلاح هاردوير لابتوب', 'تنظيف داخلي لابتوب', 'اصلاح مراوح لابتوب', 'اصلاح لوحة مفاتيح لابتوب',
+            'صيانة عامة أجهزة إلكترونية', 'تحديثات سوفتوير'
+        ];
+    }
+
+    // -----------------
+    // أجهزة كهربائية وطاقة
+    // -----------------
+    if ($category === 'أجهزة كهربائية وطاقة') {
+        switch ($subCategory) {
+            case 'ثلاجة':
+                return [
+                    'ثلاجة 300L Top Freezer',
+                    'ثلاجة 500L French Door',
+                    'ثلاجة 400L Side By Side',
+                    'ثلاجة 600L InstaView',
+                ];
+            case 'غسالة':
+                return [
+                    'غسالة 7KG Front Load',
+                    'غسالة 10KG Top Load',
+                    'غسالة 8KG Front Load',
+                ];
+            case 'شاشة تلفزيون':
+                return [
+                    'شاشة 32 بوصة HD',
+                    'شاشة 43 بوصة Full HD',
+                    'شاشة 50 بوصة 4K',
+                    'شاشة 55 بوصة OLED',
+                ];
+            case 'مولد كهرباء':
+                return [
+                    'مولد 1 كيلو',
+                    'مولد 2 كيلو',
+                    'مولد 3 كيلو',
+                    'مولد 5 كيلو',
+                ];
+            case 'نظام طاقة شمسية':
+                return [
+                    'لوح طاقة 360 واط',
+                    'لوح طاقة 450 واط',
+                    'لوح طاقة 660 واط',
+                ];
+            case 'بطاريات':
+                return [
+                    'بطارية 9 أمبير',
+                    'بطارية 18 أمبير',
+                    'بطارية 45 أمبير',
+                    'بطارية 100 أمبير',
+                    'بطارية 200 أمبير',
+                ];
+            case 'انفيرتر':
+                return [
+                    'انفيرتر 0.5 كيلو',
+                    'انفيرتر 1 كيلو',
+                    'انفيرتر 1.5 كيلو',
+                    'انفيرتر 2 كيلو',
+                    'انفيرتر 2.5 كيلو',
+                    'انفيرتر 3 كيلو',
+                ];
+            case 'مراوح':
+                return [
+                    'مروحة سقف 120 سم',
+                    'مروحة طاولة 40 سم',
+                    'مروحة أرضية 50 سم',
+                ];
+            default:
+                return [];
+        }
+    }
+
+    return [];
+    }
+
+    public function mount()
+    {
+        // جلب فئات وقوائم فرعية من قاعدة البيانات مع الأيقونات
+        $this->categoriesList = Category::orderBy('id')->get()->map(function($c){
+            // التأكد من أن subs هو array
+            $subs = $c->subs ?? [];
+            if (!is_array($subs)) {
+                $subs = json_decode($subs, true) ?? [];
+            }
+
+            return [
+                'name' => $c->name,
+                'icon' => $c->icon ?? '📦',
+                'slug' => $c->slug,
+                'subs' => $subs,
+            ];
+        })->toArray();
+
+        // توافق مع الواجهة الحالية (تستخدم $categories)
+        $this->categories = $this->categoriesList;
+
+        // إذا المستخدم مسجل كمالك محل ومفعل، عيّن الحقول مسبقاً
+        if (auth()->check() && auth()->user()->isShopOwner() && auth()->user()->is_approved) {
+            $this->added_by = 'shop_owner';
+            if (auth()->user()->shop_name) {
+                $this->shop_name = auth()->user()->shop_name;
+            }
+            if (auth()->user()->shop_city) {
+                $this->city = auth()->user()->shop_city;
+            }
+            if (auth()->user()->shop_phone) {
+                $this->contact_phone = auth()->user()->shop_phone;
+            }
+        } else {
+            // تلقائياً الزبون إذا لم يكن صاحب محل معتمد
+            $this->added_by = 'customer';
+        }
+    }
+
+    public function updatedCategory()
+    {
+        $this->sub_category = null;
+        $this->brand = null;
+        $this->name = null;
+    }
+
+   public function updatedSubCategory()
+{
+    $this->brand = null;
+    $this->name = null;
+    $this->models = [];
+    
+    // إذا كان القسم أجهزة كهربائية، قم بتحديث الموديلات فوراً
+    if ($this->category === 'أجهزة كهربائية وطاقة' && $this->sub_category) {
+        $this->models = $this->getElectricModels($this->sub_category);
+    }
+}
+
+    public function updatedBrand()
+    {
+        $this->name = null;
+        // تحديث الموديلات مباشرة
+        $this->models = $this->getModelsProperty();
+    }
+
+    public function store()
+    {
+        $this->validate([
+    'name' => 'required|min:2',
+    'category' => 'required',
+    'sub_category' => 'required',
+    'price' => 'required|numeric|min:0',
+    'city' => 'required',
+    'shop_name' => 'required',
+    'added_by' => 'required',
+    'image' => 'nullable|image|max:5120',
+    // أضف هذا السطر:
+    'brand' => $this->category === 'أجهزة كهربائية وطاقة' ? 'nullable' : 'required',
+]);
+
+        $imagePath = null;
+        if ($this->image) {
+            $imagePath = $this->image->store('products', 'public');
+        }
+
+        // توليد كود العرض التسلسلي (فريد ومتسلسل)
+        $lastProduct = Product::latest('id')->first();
+        $lastId = $lastProduct ? $lastProduct->id : 0;
+        $refCode = 'AS-' . str_pad($lastId + 1, 6, '0', STR_PAD_LEFT);
+
+        $data = [
+            'name' => $this->name,
+    'category' => $this->category,
+    'sub_category' => $this->sub_category,
+    // غير هذا السطر:
+    'brand' => $this->category === 'أجهزة كهربائية وطاقة' ? null : $this->brand,
+    'price' => $this->price,
+            'city' => $this->city,
+            'shop_name' => $this->shop_name,
+            'address_details' => $this->address_details,
+            'contact_phone' => $this->contact_phone,
+            'added_by' => $this->added_by,
+            'edit_token' => Str::random(40),
+            'image_path' => $imagePath,
+            'reference_code' => $refCode,
+            'is_approved' => true,
+        ];
+
+        // إذا المستخدم مسجل ومالك متجر ومفعل، اربط المنتج بحسابه
+        if (auth()->check() && auth()->user()->isShopOwner() && auth()->user()->is_approved) {
+            $data['user_id'] = auth()->id();
+            $data['added_by'] = 'shop_owner';
+            // إذا لم يُعطِ اسم محل في الفورم، خذ الاسم من حسابه
+            if (empty($data['shop_name']) && auth()->user()->shop_name) {
+                $data['shop_name'] = auth()->user()->shop_name;
+            }
+        }
+
+        Product::create($data);
+
+        // رسالة نجاح مع كود العرض
+        session()->flash('success', "تمت الإضافة بنجاح! كود العرض: {$refCode}");
+
+        return redirect()->route('home');
+    }
+}

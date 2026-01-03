@@ -27,25 +27,24 @@
                 </div>
             </div>
 
-            <!-- قسم جدول المنتجات -->
             <!-- قسم طلبات تسجيل المتاجر المعلقة -->
             @if(!empty($pendingUsers) && count($pendingUsers) > 0)
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
                     <div class="p-6 text-gray-900">
                         <h3 class="text-lg font-bold mb-4">طلبات تسجيل المتاجر المعلقة</h3>
                         <div class="space-y-3">
-                            @foreach($pendingUsers as $u)
+                            @foreach($pendingUsers as $user)
                                 <div class="p-4 border rounded flex justify-between items-center">
                                     <div class="text-right">
-                                        <div class="font-bold">{{ $u->shop_name ?? $u->name }}</div>
-                                        <div class="text-xs text-gray-500">{{ $u->email }} • {{ $u->shop_city }}</div>
+                                        <div class="font-bold">{{ $user->shop_name ?? $user->name }}</div>
+                                        <div class="text-xs text-gray-500">{{ $user->email }} • {{ $user->shop_city }}</div>
                                     </div>
                                     <div class="flex gap-2">
-                                        <form method="POST" action="{{ route('admin.user.approve', $u->id) }}">
+                                        <form method="POST" action="{{ route('admin.user.approve', $user->id) }}">
                                             @csrf
                                             <button class="bg-green-500 text-white px-3 py-1 rounded text-sm">موافقة</button>
                                         </form>
-                                        <form method="POST" action="{{ route('admin.user.reject', $u->id) }}" onsubmit="return confirm('هل تريد رفض وحذف هذا الطلب؟')">
+                                        <form method="POST" action="{{ route('admin.user.reject', $user->id) }}" onsubmit="return confirm('هل تريد رفض وحذف هذا الطلب؟')">
                                             @csrf
                                             @method('DELETE')
                                             <button class="bg-red-500 text-white px-3 py-1 rounded text-sm">رفض</button>
@@ -57,6 +56,8 @@
                     </div>
                 </div>
             @endif
+
+            <!-- قسم جدول المنتجات -->
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
                     <h3 class="text-lg font-bold mb-4">إدارة الأسعار والمنتجات</h3>
@@ -90,7 +91,7 @@
                                             <div class="text-sm text-gray-500">{{ $product->category }}</div>
                                         </td>
                                         <td class="border border-gray-300 px-4 py-2 font-bold text-green-600">
-                                            {{ $product->price }} ₪
+                                            {{ $product->formatted_price }}
                                         </td>
                                         <td class="border border-gray-300 px-4 py-2">
                                             <div>{{ $product->shop_name }}</div>

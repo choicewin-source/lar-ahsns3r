@@ -1,5 +1,12 @@
-<div class="min-h-screen bg-white font-sans" dir="rtl" lang="ar">
+<div class="min-h-screen bg-white font-sans" dir="rtl" lang="ar" x-data="{ showModal: {{ request('open') == 'add' ? 'true' : 'false' }} }">
     
+    {{-- نافذة إضافة السعر المنبثقة --}}
+    <div x-show="showModal" x-cloak style="display: none;" class="fixed inset-0 z-[100] bg-gray-900/60 backdrop-blur-sm overflow-y-auto">
+        <div class="min-h-screen flex items-center justify-center p-4" @click.self="showModal = false">
+            <livewire:create-product />
+        </div>
+    </div>
+
     <!-- استدعاء خط عربي فخم (Tajawal) -->
     <!-- إعلانات أسفل الصفحة -->
     @if(!empty($ads['bottom'] ?? null))
@@ -24,47 +31,47 @@
     <!-- 1. الهيدر -->
     <header class="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-       <!-- شريط الأخبار المتحرك (طلب شادي) -->
-<div class="bg-gray-900 text-white overflow-hidden py-2 relative z-50" role="region" aria-label="أخبار الموقع" aria-live="polite">
-    <div class="whitespace-nowrap animate-marquee flex gap-10">
-        <span class="mx-4 font-bold">📢 مرحبًا بكم في منصة "أحسن سعر" - دليلك الأول للأسعار في غزة</span>
-        <span class="mx-4 text-red-400">🔥 الأسعار الأرخص تظهر أولاً دائماً!</span>
-        <span class="mx-4 text-green-400">✅ يمكن لأصحاب المحلات إضافة بضائعهم وإنشاء متجر خاص مجاناً</span>
-        <span class="mx-4">⚠️ الإبلاغ عن الأسعار الوهمية يساعدنا في الحفاظ على المصداقية</span>
-    </div>
-</div>
+            <!-- شريط الأخبار المتحرك (طلب شادي) -->
+            <div class="bg-gray-900 text-white overflow-hidden py-2 relative z-50" role="region" aria-label="أخبار الموقع" aria-live="polite">
+                <div class="whitespace-nowrap animate-marquee flex gap-10">
+                    @foreach($tickerText as $message)
+                        <span class="mx-4">{{ $message }}</span>
+                    @endforeach
+                </div>
+            </div>
 
-<!-- إعلانات أعلى الصفحة -->
-@if(!empty($ads['top'] ?? null))
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-4">
-        @foreach($ads['top'] as $ad)
-            <a href="{{ $ad['link'] ?? '#' }}" class="block mb-3">
-                @if(!empty($ad['image_path']))
-                    <img src="{{ asset('storage/'.$ad['image_path']) }}" alt="{{ $ad['title'] ?? '' }}" class="w-full rounded-lg" loading="lazy">
-                @else
-                    <div class="bg-yellow-100 border border-yellow-300 p-4 rounded">{{ $ad['text_content'] ?? $ad['title'] }}</div>
-                @endif
-            </a>
-        @endforeach
-    </div>
-@endif
+            <!-- إعلانات أعلى الصفحة -->
+            @if(!empty($ads['top'] ?? null))
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-4">
+                    @foreach($ads['top'] as $ad)
+                        <a href="{{ $ad['link'] ?? '#' }}" class="block mb-3">
+                            @if(!empty($ad['image_path']))
+                                <img src="{{ asset('storage/'.$ad['image_path']) }}" alt="{{ $ad['title'] ?? '' }}" class="w-full rounded-lg" loading="lazy">
+                            @else
+                                <div class="bg-yellow-100 border border-yellow-300 p-4 rounded">{{ $ad['text_content'] ?? $ad['title'] }}</div>
+                            @endif
+                        </a>
+                    @endforeach
+                </div>
+            @endif
 
-<style>
-@keyframes marquee {
-    0% { transform: translateX(100%); }
-    100% { transform: translateX(-100%); }
-}
-.animate-marquee {
-    display: inline-block;
-    padding-left: 100%;
-    animation: marquee 20s linear infinite;
-    animation-play-state: running;
-}
-/* إيقاف التحريك عند المرور بالماوس لتحسين إمكانية القراءة */
-.bg-gray-900:hover .animate-marquee,
-.animate-marquee:hover { animation-play-state: paused; }
-</style>
-        <!-- الجزء العلوي -->
+            <style>
+            @keyframes marquee {
+                0% { transform: translateX(100%); }
+                100% { transform: translateX(-100%); }
+            }
+            .animate-marquee {
+                display: inline-block;
+                padding-left: 100%;
+                animation: marquee 20s linear infinite;
+                animation-play-state: running;
+            }
+            /* إيقاف التحريك عند المرور بالماوس لتحسين إمكانية القراءة */
+            .bg-gray-900:hover .animate-marquee,
+            .animate-marquee:hover { animation-play-state: paused; }
+            </style>
+            
+            <!-- الجزء العلوي -->
             <div class="flex flex-col md:flex-row justify-between items-center py-3 gap-4">
                 
                 <!-- اللوجو -->
@@ -95,18 +102,59 @@
                         <div class="w-px bg-gray-300 my-2"></div>
 
                         <!-- قائمة المدن -->
-                        <select wire:model.live="city" aria-label="اختيار المدينة" class="bg-gray-100 border-none text-gray-700 text-sm font-bold focus:ring-0 block p-2.5 min-w-[110px] cursor-pointer hover:bg-gray-200 transition">
+                        <select wire:model.live="selectedCity" aria-label="اختيار المدينة" class="bg-gray-100 border-none text-gray-700 text-sm font-bold focus:ring-0 block p-2.5 min-w-[110px] cursor-pointer hover:bg-gray-200 transition">
                             <option value="">📍 كل غزة</option>
                             @foreach($cities as $c)
                                 <option value="{{ $c }}">{{ $c }}</option>
                             @endforeach
                         </select>
+
+                        <!-- فاصل -->
+                        <div class="w-px bg-gray-300 my-2"></div>
+
+                        <!-- حالة المنتج (جديد/مستعمل) -->
+                        <select wire:model.live="condition" aria-label="حالة المنتج" class="bg-gray-100 border-none text-gray-700 text-sm font-bold focus:ring-0 block p-2.5 min-w-[110px] cursor-pointer hover:bg-gray-200 transition">
+                            <option value="">✨ الكل</option>
+                            <option value="new">🆕 جديد</option>
+                            <option value="used">♻️ مستعمل</option>
+                        </select>
+
+
+                        <!-- 2. نوع المنتج (يظهر بناءً على اختيار القسم) -->
+                        @if($selectedCategory)
+                        <div class="mb-5 animate-fade-in-down">
+                            <label class="block text-gray-800 text-sm font-bold mb-2">نوع المنتج</label>
+                            <select wire:model.live="sub_category" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 transition">
+                                <option value="">-- اختر النوع --</option>
+                                @foreach($categoriesList as $cat)
+                                    @if($cat['name'] == $selectedCategory)
+                                        @foreach($cat['subs'] as $sub)
+                                            <option value="{{ $sub }}">{{ $sub }}</option>
+                                        @endforeach
+                                    @endif
+                                @endforeach
+                            </select>
+
+                            <!-- زر مقارنة الأسعار -->
+                            @if($sub_category)
+                                <div class="mt-3">
+                                    <a href="{{ route('products.compare', ['category' => $selectedCategory, 'sub_category' => $sub_category]) }}" 
+                                       class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002 2m0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V9a2 2 0 00-2-2h-2a2 2 0 00-2 2v10a2 2 0 002 2h2a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h2a2 2 0 002-2z"></path>
+                                        </svg>
+                                        مقارنة أسعار {{ $sub_category }}
+                                    </a>
+                                </div>
+                            @endif
+                        </div>
+                        @endif
                     </div>
                 </div>
 
                 <!-- الأزرار -->
                 <div class="flex items-center gap-6 text-sm font-medium text-gray-600">
-                    <a href="{{ route('products.create') }}" class="flex flex-col items-center group">
+                    <a href="#" @click.prevent="showModal = true" class="flex flex-col items-center group">
                         <div class="bg-red-50 p-2 rounded-full group-hover:bg-red-600 transition-colors duration-300">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
@@ -255,24 +303,22 @@
         </div>
     @endif
 
-    <!-- 3. قسم التصنيفات (Grid) -->
+    <!-- 3. قسم التصنيفات (Grid الجديد مع 16 بوابة) -->
     <div class="bg-white py-12">
         <div class="text-center mb-10">
             <h3 class="text-2xl font-black text-gray-800 inline-block relative z-10">
-                تصفح الأقسام
+                البوابات الرئيسية لموقع أحسن سعر
                 <div class="absolute w-full h-3 bg-red-100 bottom-1 -z-10 rounded-full"></div>
             </h3>
         </div>
         
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <!-- دوائر التصنيفات -->
-            <div class="flex flex-wrap justify-center gap-8 md:gap-14">
+            <!-- شبكة البوابات 4x4 -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
                 @foreach($categoriesList as $cat)
-                    <div wire:click="selectCategory('{{ $cat['slug'] }}')" class="flex flex-col items-center group cursor-pointer w-20 md:w-auto">
-                        <div class="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center mb-3 shadow-sm group-hover:bg-red-50 group-hover:border-red-200 group-hover:scale-110 transition-all duration-300 {{ $selectedCategory == $cat['slug'] ? '!bg-red-600 !text-white !border-red-600 shadow-lg scale-110' : '' }}">
-                            <span class="text-3xl md:text-4xl filter drop-shadow-sm">{{ $cat['icon'] }}</span>
-                        </div>
-                        <span class="text-sm font-bold text-gray-700 group-hover:text-red-600 transition-colors {{ $selectedCategory == $cat['slug'] ? 'text-red-600' : '' }}">
+                    <div wire:click="selectCategory('{{ $cat['name'] }}')" class="flex flex-col items-center group cursor-pointer p-4 bg-gray-50 rounded-2xl border border-gray-100 hover:bg-red-50 hover:border-red-200 hover:scale-105 transition-all duration-300 {{ $selectedCategory == $cat['name'] ? '!bg-red-600 !text-white !border-red-600 shadow-lg scale-105' : '' }}">
+                        <span class="text-5xl mb-3">{{ $cat['icon'] }}</span>
+                        <span class="text-sm font-bold text-gray-700 group-hover:text-red-600 text-center transition-colors {{ $selectedCategory == $cat['name'] ? 'text-white' : '' }}">
                             {{ $cat['name'] }}
                         </span>
                     </div>
@@ -281,6 +327,7 @@
         </div>
     </div>
 
+   
     <!-- 4. أفضل العروض (المنتجات) -->
     <div class="bg-[#F9FAFB] py-16 border-t border-gray-200 rounded-t-[40px] shadow-inner -mt-8 relative z-20">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -303,33 +350,23 @@
                         <!-- الصورة (Placeholder متفاعل) -->
                         <div class="h-44 bg-gray-50 rounded-xl flex items-center justify-center text-6xl mb-4 group-hover:scale-105 transition-transform duration-500 relative overflow-hidden">
                             <div class="absolute inset-0 bg-gradient-to-tr from-white/0 to-white/40 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                             @if(Str::contains($product->category, 'جوال')) 📱 
-                            @elseif(Str::contains($product->category, 'كهرباء')) 🔌
-                            @elseif(Str::contains($product->category, 'أثاث')) 🛋️
-                            @elseif(Str::contains($product->category, 'شمس')) ☀️
-                            @elseif(Str::contains($product->category, 'خيم')) ⛺
-                            @elseif(Str::contains($product->category, 'سيار')) 🚗
-                            @elseif(Str::contains($product->category, 'عقار')) 🏠
-                            @else 📦 @endif
+                            @if(Str::contains($product->category, 'جوال'))
+                                📱
+                            @elseif(Str::contains($product->category, 'كهرباء'))
+                                🔌
+                            @elseif(Str::contains($product->category, 'أثاث'))
+                                🛋️
+                            @endif
+                            <p class="text-[10px] text-gray-400 font-bold">السعر</p>
+                            <span class="text-2xl font-black text-red-600 leading-none">
+                                {{ $product->formatted_price }}
+                            </span>
                         </div>
-
-                        <!-- التفاصيل -->
-                        <div class="flex-1">
-                            <h3 class="font-bold text-gray-900 text-lg mb-2 line-clamp-2 group-hover:text-red-600 transition-colors">
-                                {{ $product->name }}
-                            </h3>
-                            <div class="flex items-center gap-2 text-xs text-gray-500 mb-3 bg-gray-50 w-fit px-2 py-1 rounded">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                                {{ $product->city }} | {{ $product->shop_name }}
-                            </div>
-                        </div>
-
-                        <!-- السعر والزر -->
-                        <div class="mt-4 flex justify-between items-end border-t border-gray-50 pt-3">
-                            <div>
-                                <p class="text-[10px] text-gray-400 font-bold">السعر</p>
-                                <span class="text-2xl font-black text-red-600 leading-none">
-                                    {{ floatval($product->price) }} <span class="text-sm font-bold text-gray-400">₪</span>
+                        <!-- كود العرض التسلسلي -->
+                        <div class="text-left">
+                            <p class="text-[10px] text-gray-400 font-bold">كود العرض</p>
+                            <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                                    {{ $product->reference_code }}
                                 </span>
                             </div>
                             
@@ -345,7 +382,7 @@
                         <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center text-4xl mx-auto mb-4 grayscale opacity-50">🔍</div>
                         <h3 class="text-lg font-bold text-gray-600">عفواً، لا توجد نتائج</h3>
                         <p class="text-gray-400 text-sm mt-1">حاول البحث عن شيء آخر أو كن أول من يضيف سعراً!</p>
-                        <a href="{{ route('products.create') }}" class="inline-block mt-4 text-red-600 font-bold hover:underline">إضافة سعر جديد +</a>
+                        <a href="#" @click.prevent="showModal = true" class="inline-block mt-4 text-red-600 font-bold hover:underline">إضافة سعر جديد +</a>
                     </div>
                 @endforelse
             </div>

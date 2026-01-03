@@ -20,6 +20,10 @@
                 <form action="{{ route('products.store') }}" method="POST">
                     @csrf
 
+                    <!-- يتم إرسال نوع المُضيف تلقائياً كـ (زبون).
+                         إذا كان المستخدم صاحب متجر مُعتمد ومسجل دخول، سيتم تحويله تلقائياً في ProductController -->
+                    <input type="hidden" name="added_by" value="customer">
+
                     <!-- 1. اسم المنتج -->
                     <div class="mb-4">
                         <label class="block text-gray-700 text-sm font-bold mb-2">اسم المنتج / الخدمة</label>
@@ -27,32 +31,58 @@
                             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition">
                     </div>
 
-                    <!-- 2. التصنيف (تم تحديث القائمة حسب طلبك) -->
+                    <!-- 2. القسم -> ثم نوع المنتج (sub_category) بناءً على الأقسام الفرعية المتوفرة -->
+                    @php
+                        $categoryMap = [
+                            'أجهزة كهربائية وطاقة' => ['icon' => '🔌☀️', 'subs' => []],
+                            'أثاث ومفروشات وخيام' => ['icon' => '🛋️⛺', 'subs' => []],
+                            'سيارات ودراجات' => ['icon' => '🚗🚲', 'subs' => []],
+                            'جوالات وإلكترونيات' => ['icon' => '📱', 'subs' => []],
+                            'مطاعم' => ['icon' => '🍽️', 'subs' => []],
+                            'عقارات' => ['icon' => '🏠', 'subs' => []],
+                            'ملابس' => ['icon' => '👕', 'subs' => ['ملابس رجالية', 'ملابس نسائية', 'ملابس أطفال', 'أحذية وإكسسوارات']],
+                            'خدمات إلكترونية' => ['icon' => '🧾💻', 'subs' => ['استضافة ومواقع', 'تصميم وبرمجة', 'تسويق إلكتروني', 'خدمات دفع', 'صيانة إلكترونية']],
+                            'مواد غذائية وسوبر ماركت' => ['icon' => '🛒', 'subs' => ['خضار وفواكه', 'ألبان', 'لحوم ودواجن', 'مواد معلبة', 'مشروبات وحلويات']],
+                            'مواد بناء ولوازم منزلية' => ['icon' => '🧰', 'subs' => ['مواد بناء أساسية', 'أدوات كهربائية وسباكة', 'دهانات', 'أثاث منزلي', 'أدوات يدوية']],
+                            'صيدليات ومستلزمات طبية' => ['icon' => '🩺', 'subs' => ['أدوية', 'مستلزمات طبية', 'مكملات غذائية', 'مستلزمات أطفال']],
+                            'خدمات عامة' => ['icon' => '🛠️', 'subs' => ['صيانة كهرباء وسباكة', 'توصيل ونقل', 'تنظيف', 'تصليح أجهزة']],
+                            'ترفيه وألعاب ورياضة' => ['icon' => '🎮⚽️', 'subs' => ['ألعاب فيديو', 'ألعاب أطفال', 'معدات رياضية', 'أنشطة ترفيهية']],
+                            'زراعة وحيوانات' => ['icon' => '🐔🐄', 'subs' => ['حيوانات أليفة', 'أعلاف', 'أدوات زراعة', 'معدات ري']],
+                            'أخرى' => ['icon' => '📦', 'subs' => []],
+                        ];
+
+                        // دمج بيانات DB مع خريطة ثابتة (إن كانت subs في DB فارغة)
+                        $categoriesForForm = ($categories ?? collect())->map(function($c) use ($categoryMap) {
+                            $custom = $categoryMap[$c->name] ?? null;
+
+                            return [
+                                'name' => $c->name,
+                                'icon' => $custom['icon'] ?? ($c->icon ?? '📦'),
+                                'subs' => array_values(array_unique(array_merge($c->subs ?? [], $custom['subs'] ?? []))),
+                            ];
+                        })->values();
+
+                        $subCategoriesJson = $categoriesForForm->mapWithKeys(fn($c) => [$c['name'] => $c['subs']])->toJson(JSON_UNESCAPED_UNICODE);
+                    @endphp
+
                     <div class="mb-4">
                         <label class="block text-gray-700 text-sm font-bold mb-2">القسم</label>
-                        <select name="category" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent bg-white">
-                            <option value="" disabled selected>-- اختر القسم المناسب --</option>
-                            
-                            <option value="جوالات وإلكترونيات">📱 جوالات وإلكترونيات</option>
-                            
-                            <option value="أجهزة كهربائية">🔌 أجهزة كهربائية (ثلاجات، غسالات، غواطس..)</option>
-                            
-                            <option value="طاقة شمسية">☀️ طاقة شمسية (ألواح، بطاريات)</option>
-                            
-                            <option value="أثاث ومفروشات">🛋️ أثاث ومفروشات</option>
-                            
-                            <option value="خيام وشوادر">⛺ خيام وشوادر</option>
-                            
-                            <option value="سيارات">🚗 سيارات وقطع غيار</option>
-                            
-                            <option value="دراجات">🚲 دراجات (نارية وهواءية)</option>
-                            
-                            <option value="عقارات">🏠 عقارات (إيجار/بيع)</option>
-                            
-                            <option value="ملابس">👕 ملابس وأحذية</option>
-                            
-                            <option value="أخرى">📦 أخرى</option>
+                        <select id="categorySelect" name="category" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent bg-white">
+                            <option value="" disabled {{ old('category') ? '' : 'selected' }}>-- اختر القسم المناسب --</option>
+                            @foreach($categoriesForForm as $cat)
+                                <option value="{{ $cat['name'] }}" {{ old('category') === $cat['name'] ? 'selected' : '' }}>
+                                    {{ $cat['icon'] }} {{ $cat['name'] }}
+                                </option>
+                            @endforeach
                         </select>
+                    </div>
+
+                    <div class="mb-4" id="subCategoryWrapper" style="display:none;">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">نوع المنتج</label>
+                        <select id="subCategorySelect" name="sub_category" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent bg-white">
+                            <option value="">-- اختر النوع --</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-2">إذا لم تجد النوع المناسب، يمكنك تركه فارغًا.</p>
                     </div>
 
                     <!-- 3. السعر -->
@@ -93,23 +123,48 @@
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">{{ old('address_details') }}</textarea>
                     </div>
 
-                    <!-- 7. من أنت؟ (الميزة المهمة) -->
-                    <div class="mb-8 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                        <label class="block text-gray-800 text-sm font-bold mb-3">بصفتك مين بتنشر السعر؟</label>
-                        <div class="flex gap-4">
-                            <!-- خيار الزبون -->
-                            <label class="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 rounded border hover:bg-green-50 transition">
-                                <input type="radio" name="added_by" value="customer" checked class="text-green-600 focus:ring-green-500">
-                                <span class="text-sm font-medium">أنا زبون (عن تجربة)</span>
-                            </label>
-                            
-                            <!-- خيار صاحب المحل -->
-                            <label class="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 rounded border hover:bg-gray-100 transition">
-                                <input type="radio" name="added_by" value="shop_owner" class="text-black focus:ring-black">
-                                <span class="text-sm font-medium">أنا صاحب المحل</span>
-                            </label>
-                        </div>
-                    </div>
+
+                    <script>
+                        (function () {
+                            const subCategoriesByCategory = {!! $subCategoriesJson !!};
+                            const categorySelect = document.getElementById('categorySelect');
+                            const subWrapper = document.getElementById('subCategoryWrapper');
+                            const subSelect = document.getElementById('subCategorySelect');
+
+                            function renderSubCategories() {
+                                const cat = categorySelect.value;
+                                const subs = (subCategoriesByCategory && subCategoriesByCategory[cat]) ? subCategoriesByCategory[cat] : [];
+
+                                // تنظيف الخيارات
+                                subSelect.innerHTML = '<option value="">-- اختر النوع --</option>';
+
+                                if (!cat || !subs || subs.length === 0) {
+                                    subWrapper.style.display = 'none';
+                                    return;
+                                }
+
+                                subs.forEach((s) => {
+                                    const opt = document.createElement('option');
+                                    opt.value = s;
+                                    opt.textContent = s;
+                                    subSelect.appendChild(opt);
+                                });
+
+                                // إعادة تعيين القيمة القديمة إن وجدت
+                                const oldSub = @json(old('sub_category'));
+                                if (oldSub) {
+                                    subSelect.value = oldSub;
+                                }
+
+                                subWrapper.style.display = 'block';
+                            }
+
+                            categorySelect.addEventListener('change', renderSubCategories);
+                            document.addEventListener('DOMContentLoaded', renderSubCategories);
+                            // في حال كانت الصفحة محملة مسبقاً
+                            renderSubCategories();
+                        })();
+                    </script>
 
                     <!-- زر النشر -->
                     <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg transition transform hover:scale-[1.02] flex justify-center items-center gap-2">

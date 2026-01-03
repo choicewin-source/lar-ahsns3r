@@ -2,34 +2,43 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Product;
+use Illuminate\Http\Request;
 
 class ShopDashboardController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware(['auth', 'verified']);
-    }
-
+    /**
+     * لوحة تحكم صاحب المتجر (يعرض منتجاته فقط + إحصائيات بسيطة)
+     */
     public function index(Request $request)
     {
         $user = $request->user();
 
-        $products = Product::where('user_id', $user->id)->orderBy('created_at', 'desc')->paginate(20);
+        abort_unless($user && $user->isShopOwner(), 403);
+        abort_unless($user->is_approved, 403, 'حساب المتجر يحتاج موافقة الإدارة');
 
-        return view('shop.dashboard', compact('products'));
-    }
+        $products = Product::query()
+            ->where('is_approved', true)
+            ->where(function ($q) use ($user) {
+                $q->where('user_id', $user->id)
+                  ->orWhere('shop_name', $user->shop_name);
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
 
-    public function destroy(Request $request, $id)
-    {
-        $product = Product::where('id', $id)->where('user_id', $request->user()->id)->firstOrFail();
-        // delete image file if exists
-        if ($product->image_path) {
-            try {\Illuminate\Support\Facades\Storage::disk('public')->delete($product->image_path);} catch (\Throwable $e) {}
-        }
-        $product->delete();
+        $baseShopProductsQuery = Product::query()
+            ->where(function ($q) use ($user) {
+                $q->where('user_id', $user->id)
+                  ->orWhere('shop_name', $user->shop_name);
+            });
 
-        return redirect()->route('shop.dashboard')->with('success', 'تم حذف المنتج بنجاح');
+        $stats = [
+            'total_products' => (clone $baseShopProductsQuery)->count(),
+            'today_products' => (clone $baseShopProductsQuery)
+                ->whereDate('created_at', today())
+                ->count(),
+        ];
+
+        return view('shop.dashboard', compact('products', 'stats'));
     }
 }

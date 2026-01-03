@@ -1,59 +1,172 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🏪 منصة "أحسن سعر"
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+منصة مقارنة أسعار شاملة لغزة، تمكن المستخدمين من مشاركة ومقارنة الأسعار لجميع المنتجات والخدمات.
 
-## About Laravel
+## 🌟 الميزات الرئيسية
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+### 📱 البوابات المتنوعة (16 بوابة)
+- 🔌 **أجهزة كهربائية وطاقة** - ثلاجات، غسالات، أنظمة طاقة شمسية
+- 📱 **جوالات وإلكترونيات** - هواتف، لابتوب، أكسسوارات
+- 🛋️ **أثاث ومفروشات وخيام** - أثاث منزلي، خيام، مستلزمات
+- 🚗 **سيارات ودراجات** - مركبات، قطع غيار، زيوت
+- 🍽️ **مطاعم** - وجبات سريعة، مشاوي، حلويات
+- 🏠 **عقارات** - شقق، محلات تجارية، أراضي
+- 👕 **ملابس** - رجالية، نسائية، أطفال، أحذية
+- 💻 **خدمات إلكترونية** - استضافة، برمجة، تسويق
+- 🛒 **مواد غذائية** - خضروات، لحوم، مواد معلبة
+- 🧰 **مواد بناء** - إسمنت، دهانات، أدوات
+- 🩺 **صيدليات ومستلزمات طبية** - أدوية، مستلزمات طبية
+- 🛠️ **خدمات عامة** - صيانة، نقل، تنظيف
+- 🎮 **ترفيه وألعاب ورياضة** - ألعاب فيديو، معدات رياضية
+- 🐔 **زراعة وحيوانات** - أعلاف، بذور، معدات
+- 📦 **أخرى** - تصنيفات متنوعة
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### 👥 نظام المستخدمين المزدوج
+- **الزبائن**: يمكنهم إضافة المنتجات وتجاربهم
+- **أصحاب المتاجر**: تسجيل كمتجر معتمد مع لوحة تحكم خاصة
+- **المدير**: لوحة تحكم شاملة لإدارة المحتوى
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### 💰 نظام الأسعار الذكي
+- **الترتيب التلقائي**: أقل سعر يظهر أولاً
+- **كود العرض التسلسلي**: كل منتج له كود فريد (AS-000001)
+- **التعديل السهل**: رابط تعديل خاص لكل منتج
+- **المصدر المعروض**: تمييز بين "تجربة مواطن" و"محل تجاري"
 
-## Learning Laravel
+### 🎨 واجهة مستخدم حديثة
+- **تصميم متجاوب**: يعمل على جميع الأجهزة
+- **شريط إعلانات متحرك**: إعلانات وتعميمات
+- **بحث متقدم**: حسب الفئة، المدينة، أو اسم المنتج
+- **فلترة ذكية**: حسب السعر والموقع
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## 🚀 التثبيت والتشغيل
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### المتطلبات
+- PHP 8.2+
+- Composer
+- Node.js & NPM
+- SQLite (افتراضي) أو MySQL/PostgreSQL
 
-## Laravel Sponsors
+### خطوات التثبيت
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+1. **نسخ المشروع**
+```bash
+git clone <repository-url>
+cd best-price
+```
 
-### Premium Partners
+2. **تثبيت الحزم**
+```bash
+composer install
+npm install
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+3. **إعداد البيئة**
+```bash
+cp .env.example .env
+php artisan key:generate
+```
 
-## Contributing
+4. **قاعدة البيانات**
+```bash
+php artisan migrate
+php artisan db:seed
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+5. **ربط الملفات**
+```bash
+php artisan storage:link
+```
 
-## Code of Conduct
+6. **تشغيل الخادم**
+```bash
+npm run dev
+php artisan serve
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## 📊 البنية التقنية
 
-## Security Vulnerabilities
+### الخلفية (Backend)
+- **Laravel 12.x** - إطار العمل PHP
+- **Livewire 3.x** - واجهات تفاعلية
+- **SQLite** - قاعدة البيانات (قابلة للتغيير)
+- **Eloquent ORM** - التعامل مع قاعدة البيانات
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### الواجهة الأمامية (Frontend)
+- **Tailwind CSS** - إطار التصميم
+- **Alpine.js** - التفاعلات الجانبية
+- **Blade Templates** - قوالب Laravel
+- **Vite** - بناء الأصول
 
-## License
+### قاعدة البيانات
+- **users** - إدارة المستخدمين (زبائن، أصحاب متاجر، مدير)
+- **products** - المنتجات والأسعار
+- **categories** - البوابات والأقسام الفرعية
+- **ads** - إعلانات الموقع
+- **comments** - تعليقات المستخدمين
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## 🎯 الميزات المتقدمة
+
+### لوحة تحكم المدير
+- إحصائيات شاملة عن المنتجات والمستخدمين
+- موافقة على طلبات أصحاب المتاجر
+- إدارة البوابات والأقسام
+- التحكم في الإعلانات
+- مراجعة وحذف المحتوى المخالف
+
+### لوحة تحكم صاحب المتجر
+- إدارة منتجات المتجر
+- عرض إحصائيات المبيعات
+- تعديل معلومات المتجر
+- إضافة عروض خاصة
+
+### نظام البحث والفلترة
+- بحث مباشر في اسماء المنتجات
+- فلترة حسب البوابات
+- تحديد المدينة للبحث المحلي
+- ترتيب النتائج حسب السعر
+
+## 🔧 الإعدادات
+
+### ملف .env
+```env
+APP_NAME="أحسن سعر"
+APP_LOCALE=ar
+APP_FALLBACK_LOCALE=ar
+
+DB_CONNECTION=sqlite
+# DB_DATABASE=database/database.sqlite
+
+MAIL_MAILER=log
+MAIL_FROM_ADDRESS="info@ahsansanar.com"
+```
+
+### البوابات الافتراضية
+يتم تحميل 16 بوابة رئيسية مع الأقسام الفرعية من قاعدة البيانات:
+- جوالات وإلكترونيات → جوال، لابتوب، تابلت، سماعات...
+- أجهزة كهربائية → ثلاجة، غسالة، شاشة، مولد...
+- مطاعم → وجبات سريعة، شاورما، مشاوي...
+
+## 📱 التواصل والدعم
+
+- **تليجرام**: @shady2013
+- **البريد**: info@ahsansanar.com
+
+## 🎯 رؤية المشروع
+
+منصة "أحسن سعر" تهدف إلى:
+1. **تمكين المستهلك** من خلال توفير معلومات أسعار دقيقة
+2. **دعم التجار المحليين** بتوفير منصة مجانية للعرض
+3. **خلق منافسة صحية** بين التجار لتحسين الأسعار
+4. **بناء مجتمع شفاف** لمشاركة التجارب والأسعار
+
+## 📈 التطوير المستقبلي
+
+- تطبيق جوال للأندرويد و iOS
+- نظام إشعارات للعروض الجديدة
+- دمج مع أنظمة الدفع الإلكتروني
+- تحليلات وتقارير متقدمة للتجار
+- نظام تقييم للمنتجات والمتاجر
+
+---
+
+**صُمبت ب❤️ من أجل أهل غزة**

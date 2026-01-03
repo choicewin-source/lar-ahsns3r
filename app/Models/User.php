@@ -2,21 +2,15 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
         'name',
         'email',
@@ -28,26 +22,17 @@ class User extends Authenticatable
         'shop_phone',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_approved' => 'boolean',
         ];
     }
 
@@ -61,8 +46,21 @@ class User extends Authenticatable
         return $this->role === 'shop_owner';
     }
 
+    public function isCustomer(): bool
+    {
+        return $this->role === 'user' || $this->role === 'customer';
+    }
+
     public function products()
     {
-        return $this->hasMany(\App\Models\Product::class);
+        return $this->hasMany(Product::class);
+    }
+
+    public function getShopProducts()
+    {
+        return Product::where(function($query) {
+            $query->where('shop_name', $this->shop_name)
+                  ->orWhere('user_id', $this->id);
+        })->where('is_approved', true);
     }
 }

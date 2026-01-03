@@ -1,6 +1,7 @@
 <?php
 
 namespace Database\Seeders;
+
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -13,18 +14,33 @@ class DatabaseSeeder extends Seeder
     /**
      * Seed the application's database.
      */
-   // database/seeders/DatabaseSeeder.php
+    public function run(): void
+    {
+        // حساب المالك الوحيد - التحقق من عدم وجوده أولاً
+        if (!User::where('email', 'admin@bestprice.com')->exists()) {
+            User::create([
+                'name' => 'Administrator',
+                'email' => 'admin@bestprice.com',
+                'password' => Hash::make('Admin@123456'),
+                'email_verified_at' => now(),
+                'role' => 'admin',
+                'is_approved' => true,
+            ]);
+        }
 
+        // حساب مساعد (اختياري)
+        if (!User::where('email', 'moderator@bestprice.com')->exists()) {
+            User::create([
+                'name' => 'المشرف',
+                'email' => 'moderator@bestprice.com',
+                'password' => Hash::make('Moderator@123'),
+                'email_verified_at' => now(),
+                'role' => 'admin',
+                'is_approved' => true,
+            ]);
+        }
 
-
-public function run(): void
-{
-    // حساب المالك الوحيد
-    User::create([
-        'name' => 'Owner', // اسم المالك
-        'email' => 'admin@bestprice.com', // الايميل اللي هتدخل فيه
-        'password' => Hash::make('password123'), // كلمة السر (غيرها براحتك)
-        'email_verified_at' => now(),
-    ]);
-}
+        // استدعاء سيدر الفئات
+        $this->call(CategorySeeder::class);
+    }
 }

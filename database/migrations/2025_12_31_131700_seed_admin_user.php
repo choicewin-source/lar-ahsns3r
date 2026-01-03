@@ -8,13 +8,17 @@ return new class extends Migration
 {
     public function up()
     {
+        // استخدام متغير بيئة لكلمة المرور إذا أمكن
+        $password = env('ADMIN_DEFAULT_PASSWORD', 'Admin@123456');
+        
         $now = now();
-        DB::table('users')->insert([
+        DB::table('users')->insertOrIgnore([
             'name' => 'Administrator',
             'email' => 'admin@local.test',
-            'password' => Hash::make('secret123'),
+            'password' => Hash::make($password),
             'role' => 'admin',
             'is_approved' => true,
+            'email_verified_at' => $now,
             'created_at' => $now,
             'updated_at' => $now,
         ]);
@@ -22,6 +26,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        DB::table('users')->where('email','admin@local.test')->delete();
+        DB::table('users')->where('email', 'admin@local.test')->delete();
     }
 };

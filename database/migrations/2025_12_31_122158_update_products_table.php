@@ -9,21 +9,31 @@ return new class extends Migration
     public function up()
     {
         Schema::table('products', function (Blueprint $table) {
-            // كود العرض (مرجعية) مثل: AS-5092
-            $table->string('reference_code')->unique()->nullable()->after('id');
-            // حالة الموافقة (مفعلة تلقائياً حالياً حسب طلب شادي، ويمكن تغييرها لاحقاً)
-            $table->boolean('is_approved')->default(true)->after('edit_token');
-            // رقم التواصل إذا لم يكن موجوداً
-            if (!Schema::hasColumn('products', 'contact_phone')) {
-                $table->string('contact_phone')->nullable();
+            // هذه الحقول يجب أن تكون في الهجرة الرئيسية، 
+            // ولكن نضيفها هنا للتأكد من التوافق مع النسخ القديمة
+            
+            if (!Schema::hasColumn('products', 'reference_code')) {
+                $table->string('reference_code')->nullable()->after('id');
             }
+            
+            if (!Schema::hasColumn('products', 'is_approved')) {
+                $table->boolean('is_approved')->default(true)->after('edit_token');
+            }
+            
+            // إضافة فهارس لتحسين الأداء
+            $table->index(['category', 'sub_category'], 'products_category_sub_index');
+            $table->index('price');
         });
     }
 
     public function down()
     {
         Schema::table('products', function (Blueprint $table) {
-            $table->dropColumn(['reference_code', 'is_approved']);
+            // لا نحذف الحقول في حالة التراجع لأنها أساسية
+            // $table->dropColumn(['reference_code', 'is_approved']);
+            
+            $table->dropIndex('products_category_sub_index');
+            $table->dropIndex(['price']);
         });
     }
 };

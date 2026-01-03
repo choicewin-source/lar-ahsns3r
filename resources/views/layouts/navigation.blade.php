@@ -80,7 +80,7 @@
                         <x-slot name="trigger">
                             <button class="inline-flex items-center px-4 py-2 border border-gray-200 text-sm font-medium rounded-full text-gray-700 bg-gray-50 hover:text-gray-900 hover:bg-white hover:shadow-sm focus:outline-none transition ease-in-out duration-150">
                                 <div class="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                                <div>{{ Auth::user()->name }}</div>
+                                <div>{{ Auth::user()->name ?? 'الملف الشخصي' }}</div>
                                 <div class="ms-1">
                                     <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
@@ -90,15 +90,9 @@
                         </x-slot>
 
                         <x-slot name="content">
-                            @if(Auth::user()->email == 'admin@bestprice.com')
+                            @if(Auth::check() && Auth::user()->email == 'admin@bestprice.com')
                                 <x-dropdown-link :href="route('admin.dashboard')">
                                     لوحة التحكم
-                                </x-dropdown-link>
-                            @endif
-
-                            @if(Auth::user()->isShopOwner() && Auth::user()->is_approved)
-                                <x-dropdown-link :href="route('shop.dashboard')">
-                                    إدارة متجري
                                 </x-dropdown-link>
                             @endif
                             <form method="POST" action="{{ route('logout') }}">
@@ -155,7 +149,7 @@
             </a>
         </div>
 
-            <!-- إعدادات المستخدم في الموبايل -->
+        <!-- إعدادات المستخدم في الموبايل -->
         <div class="pt-4 pb-1 border-t border-gray-200">
             @auth
                 <div class="px-4">
@@ -163,9 +157,6 @@
                     <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
                 </div>
                 <div class="mt-3 space-y-1">
-                        @if(Auth::user()->isShopOwner() && Auth::user()->is_approved)
-                            <x-responsive-nav-link :href="route('shop.dashboard')">إدارة متجري</x-responsive-nav-link>
-                        @endif
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
                         <x-responsive-nav-link :href="route('logout')"
@@ -177,7 +168,6 @@
             @else
                 <div class="p-4">
                     <a href="{{ route('login') }}" class="block w-full text-center text-gray-700 bg-gray-100 py-3 rounded-lg font-bold mb-2">دخول المالك</a>
-                        <a href="{{ route('shop.register') }}" class="block w-full text-center text-gray-700 bg-white py-3 rounded-lg font-bold">سجل متجرك</a>
                 </div>
             @endauth
         </div>

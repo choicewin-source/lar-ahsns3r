@@ -8,6 +8,7 @@ use App\Models\Ad;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\Layout;
+use Illuminate\Support\Facades\Cache;
 
 #[Layout('layouts.app')]
 class HomePage extends Component
@@ -16,14 +17,23 @@ class HomePage extends Component
 
     public $search = ''; 
     public $selectedCategory = ''; 
-    public $city = '';
+    public $selectedCity = ''; // تم تصحيح الاسم
     public $selectedShop = ''; // جديد: لفلترة منتجات محل معين
+    public $sub_category = ''; // القسم الفرعي المحدد
+    public $condition = ''; // حالة المنتج: جديد أو مستعمل
+    public $tickerText = ''; // شريط الإعلانات المتحرك
 
     // سيتم جلب القائمة من جدول الفئات
     public $categoriesList = [];
 
     public $cities = ['شمال غزة', 'مدينة غزة', 'المنطقة الوسطى', 'خانيونس', 'رفح'];
     public $ads = [];
+
+    public function selectCity($city)
+    {
+        $this->selectedCity = $city === $this->selectedCity ? '' : $city;
+        $this->resetPage(); 
+    }
 
     public function selectCategory($category)
     {
@@ -39,45 +49,100 @@ class HomePage extends Component
             $this->selectedShop = request('shop');
         }
 
-        // جلب الفئات من DB إذا وُجدت، وإلا fallback للقائمة الداخلية
-        $this->categoriesList = Category::orderBy('id')->get()->map(function($c){
-            return [
-                'name' => $c->name,
-                'icon' => $c->icon ?? '📦',
-                'slug' => $c->slug,
-                'subs' => $c->subs ?? [],
+        // جلب الفئات من DB مع الأقسام الفرعية - مع Caching
+        // تم تحديث المنطق لدمج الأيقونات والأقسام الفرعية المطلوبة حسب المحادثة
+        $this->categoriesList = Cache::remember('categories_list_v2', 3600, function() {
+            // خريطة الأيقونات والأقسام الفرعية حسب طلب العميل
+            $customMap = [
+                'أجهزة كهربائية وطاقة' => ['icon' => '🔌☀️', 'subs' => []],
+                'أثاث ومفروشات وخيام' => ['icon' => '🛋️⛺', 'subs' => []],
+                'سيارات ودراجات' => ['icon' => '🚗🚲', 'subs' => []],
+                'جوالات وإلكترونيات' => ['icon' => '📱', 'subs' => []],
+                'مطاعم' => ['icon' => '🍽️', 'subs' => []],
+                'عقارات' => ['icon' => '🏠', 'subs' => []],
+                'ملابس' => ['icon' => '👕', 'subs' => ['ملابس رجالية', 'ملابس نسائية', 'ملابس أطفال', 'أحذية وإكسسوارات']],
+                'خدمات إلكترونية' => ['icon' => '🧾💻', 'subs' => ['استضافة ومواقع', 'تصميم وبرمجة', 'تسويق إلكتروني', 'خدمات دفع', 'صيانة إلكترونية']],
+                'مواد غذائية وسوبر ماركت' => ['icon' => '🛒', 'subs' => ['خضار وفواكه', 'ألبان', 'لحوم ودواجن', 'مواد معلبة', 'مشروبات وحلويات']],
+                'مواد بناء ولوازم منزلية' => ['icon' => '🧰', 'subs' => ['مواد بناء أساسية', 'أدوات كهربائية وسباكة', 'دهانات', 'أثاث منزلي', 'أدوات يدوية']],
+                'صيدليات ومستلزمات طبية' => ['icon' => '🩺', 'subs' => ['أدوية', 'مستلزمات طبية', 'مكملات غذائية', 'مستلزمات أطفال']],
+                'خدمات عامة' => ['icon' => '🛠️', 'subs' => ['صيانة كهرباء وسباكة', 'توصيل ونقل', 'تنظيف', 'تصليح أجهزة']],
+                'ترفيه وألعاب ورياضة' => ['icon' => '🎮⚽️', 'subs' => ['ألعاب فيديو', 'ألعاب أطفال', 'معدات رياضية', 'أنشطة ترفيهية']],
+                'زراعة وحيوانات' => ['icon' => '🐔🐄', 'subs' => ['حيوانات أليفة', 'أعلاف', 'أدوات زراعة', 'معدات ري']],
+                'أخرى' => ['icon' => '📦', 'subs' => []],
             ];
-        })->toArray();
 
-        // جلب الإعلانات المفعلّة
-        $this->ads = Ad::where('is_active', true)->orderBy('position')->get()->groupBy('position')->toArray();
+            return Category::orderBy('id')->get()->map(function($c) use ($customMap) {
+                // البحث عن الإعدادات المخصصة بناءً على الاسم
+                $custom = $customMap[$c->name] ?? null;
+                
+                return [
+                    'name' => $c->name,
+                    // استخدام الأيقونة المخصصة إذا وجدت، وإلا استخدام الموجودة في القاعدة
+                    'icon' => $custom['icon'] ?? ($c->icon ?? '📦'),
+                    'slug' => $c->slug,
+                    // دمج الأقسام الفرعية من القاعدة مع القائمة المخصصة
+                    'subs' => array_unique(array_merge($c->subs ?? [], $custom['subs'] ?? [])),
+                ];
+            })->toArray();
+        });
+
+        // جلب الإعلانات المفعلّة - مع Caching
+        $this->ads = Cache::remember('active_ads', 300, function() {
+            return Ad::where('is_active', true)->orderBy('order')->get()->groupBy('order')->toArray();
+        });
+
+        // إعداد نص الشريط المتحرك (الآن كـ array)
+        $this->tickerText = [
+            '📢 مرحبًا بكم في منصة "أحسن سعر" - دليلك الأول للأسعار في غزة',
+            '🔥 الأسعار الأرخص تظهر أولاً دائماً!',
+            '✅ يمكن لأصحاب المحلات إضافة بضائعهم وإنشاء متجر خاص مجاناً',
+            '⚠️ الإبلاغ عن الأسعار الوهمية يساعدنا في الحفاظ على المصداقية',
+            '📞 لأي ملاحظة تواصل معنا على تليجرام: @shady2013',
+            '✨ اكتشف موقع أحسن سعر - قارن، شارك، ووفّر!',
+        ];
     }
 
     public function render()
     {
-        $products = Product::query()
-            ->where('is_approved', true) // يعرض فقط الموافق عليه
-            ->when($this->search, function($q) {
-                $q->where('name', 'like', '%'.$this->search.'%')
-                  ->orWhere('shop_name', 'like', '%'.$this->search.'%');
-            })
-            ->when($this->selectedCategory, function($q) {
-                $q->where('category', $this->selectedCategory);
-            })
-            ->when($this->selectedShop, function($q) {
-                $q->where('shop_name', $this->selectedShop);
-            })
-            ->when($this->city, function($q) {
-                $q->where('city', $this->city);
-            })
-            // إظهار أفضل عرض لكل منتج (السعر الأدنى لكل اسم منتج)
-            ->whereRaw('price = (select min(p2.price) from products p2 where p2.name = products.name and p2.is_approved = 1)')
-            ->orderBy('price', 'asc')
-            ->paginate(12);
+        $query = Product::with('user')->where('is_approved', true);
+        // تحسين: تحديد الأعمدة المطلوبة فقط لتقليل استهلاك الذاكرة
+        $query = Product::select('id', 'name', 'price', 'image_path', 'city', 'shop_name', 'created_at', 'category', 'reference_code', 'condition')
+            ->where('is_approved', true);
+        // تمت إزالة with('user') إذا لم تكن بيانات المستخدم ضرورية في بطاقة العرض الرئيسية
+
+        // فلترة حسب القسم
+        if ($this->selectedCategory) {
+            $query->where('category', $this->selectedCategory);
+        }
+
+        // فلترة حسب المدينة
+        if ($this->selectedCity) {
+            $query->where('city', $this->selectedCity);
+        }
+
+        // فلترة حسب اسم المحل
+        if ($this->selectedShop) {
+            $query->where('shop_name', $this->selectedShop);
+        }
+
+        // البحث في اسم المنتج
+        if ($this->search) {
+            $query->where('name', 'like', '%' . $this->search . '%');
+        }
+
+        // فلترة حسب الحالة (جديد / مستعمل)
+        if ($this->condition) {
+            $query->where('condition', $this->condition);
+        }
+
+        // الترتيب حسب السعر (الأقل أولاً) ثم حسب التاريخ (الأحدث أولاً)
+        $products = $query->orderBy('price', 'asc')->orderBy('created_at', 'desc')->paginate(12);
 
         return view('livewire.home-page', [
             'products' => $products,
+            'categoriesList' => $this->categoriesList,
             'ads' => $this->ads,
+            'tickerText' => $this->tickerText,
         ]);
     }
 }

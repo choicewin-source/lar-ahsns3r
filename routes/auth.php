@@ -8,7 +8,9 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Auth\ShopRegisterController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\Auth\SocialLoginController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -18,6 +20,10 @@ Route::middleware('guest')->group(function () {
                 ->name('register');
 
     Route::post('register', [RegisteredUserController::class, 'store']);
+
+    // Shop Registration
+    Route::get('register-shop', [ShopRegisterController::class, 'create'])->name('shop.register');
+    Route::post('register-shop', [ShopRegisterController::class, 'store'])->name('shop.register.store');
 
     // تسجيل الدخول (Login)
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
@@ -38,6 +44,10 @@ Route::middleware('guest')->group(function () {
 
     Route::post('reset-password', [NewPasswordController::class, 'store'])
                 ->name('password.store');
+
+    // Social Login (Google)
+    Route::get('auth/google', [SocialLoginController::class, 'redirectToGoogle'])->name('auth.google');
+    Route::get('auth/google/callback', [SocialLoginController::class, 'handleGoogleCallback']);
 });
 
 Route::middleware('auth')->group(function () {
