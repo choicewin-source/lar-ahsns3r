@@ -17,7 +17,7 @@ COPY . .
 
 RUN composer install --no-dev --optimize-autoloader
 
-RUN php artisan key:generate
+
 
 RUN php artisan config:clear && php artisan config:cache
 
