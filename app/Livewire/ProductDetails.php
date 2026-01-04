@@ -40,8 +40,11 @@ class ProductDetails extends Component
         $words = explode(' ', $this->product->name);
         $searchTerms = array_slice($words, 0, 3); // خذ أول 3 كلمات
 
-        $similarProducts = Product::where('category', $this->product->category)
+        $similarProducts = Product::select('id', 'name', 'price', 'category', 'shop_name', 'added_by', 'user_id')
+            ->with('user:id,name,shop_name') // جلب معلومات المستخدم/المتجر
+            ->where('category', $this->product->category)
             ->where('id', '!=', $this->product->id)
+            ->where('is_approved', true) // فقط المنتجات المعتمدة
             ->where(function($query) use ($searchTerms) {
                 foreach ($searchTerms as $term) {
                     if(mb_strlen($term) > 1) {

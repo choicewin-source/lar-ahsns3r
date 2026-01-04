@@ -10,12 +10,14 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up()
-{
-    Schema::table('products', function (Blueprint $table) {
-        $table->string('sub_category')->nullable(); // مثلاً: ثلاجة، ايفون، بيع، ايجار
-        $table->string('brand')->nullable(); // ماركة: سامسونج، ال جي (اختياري)
-    });
-}
+    {
+        // هذه الأعمدة موجودة بالفعل في migration السابق (create_products_table)
+        // لذلك لا نحتاج لإضافتها مرة أخرى
+        // Schema::table('products', function (Blueprint $table) {
+        //     $table->string('sub_category')->nullable();
+        //     $table->string('brand')->nullable();
+        // });
+    }
 
     /**
      * Reverse the migrations.

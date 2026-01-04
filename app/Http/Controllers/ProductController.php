@@ -81,7 +81,8 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Product::where('is_approved', true);
+        $query = Product::with('user:id,name,shop_name,is_approved')
+            ->where('is_approved', true);
 
         // البحث
         if ($request->search) {
@@ -98,8 +99,8 @@ class ProductController extends Controller
             $query->where('city', $request->city);
         }
 
-        // الترتيب: الأقل سعراً أولاً
-        $products = $query->orderBy('price', 'asc')->orderBy('created_at', 'desc')->paginate(50);
+        // الترتيب: الأحدث أولاً، ثم الأقل سعراً
+        $products = $query->orderBy('created_at', 'desc')->orderBy('price', 'asc')->paginate(50);
 
         return view('products.index', compact('products'));
     }

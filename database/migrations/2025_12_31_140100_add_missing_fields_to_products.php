@@ -8,24 +8,8 @@ return new class extends Migration
 {
     public function up()
     {
-        Schema::table('products', function (Blueprint $table) {
-            // إضافة الحقول المفقودة للمنتجات
-            if (!Schema::hasColumn('products', 'sub_category')) {
-                $table->string('sub_category')->nullable()->after('category');
-            }
-            if (!Schema::hasColumn('products', 'brand')) {
-                $table->string('brand')->nullable()->after('sub_category');
-            }
-            if (!Schema::hasColumn('products', 'contact_phone')) {
-                $table->string('contact_phone')->nullable()->after('address_details');
-            }
-            if (!Schema::hasColumn('products', 'image_path')) {
-                $table->string('image_path')->nullable()->after('contact_phone');
-            }
-            if (!Schema::hasColumn('products', 'user_id')) {
-                $table->foreignId('user_id')->nullable()->after('is_approved')->constrained()->onDelete('set null');
-            }
-        });
+        // جميع هذه الحقول موجودة بالفعل في create_products_table migration
+        // لا نحتاج لإضافتها مرة أخرى
     }
 
     public function down(): void

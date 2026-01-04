@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\User;
+use App\Notifications\ShopApproved;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -12,24 +13,15 @@ use Illuminate\Support\Facades\Storage;
 class DashboardController extends Controller
 {
     /**
-     * إنشاء Middleware للتأكد من صلاحيات المدير
-     */
-    public function __construct()
-    {
-        $this->middleware(['auth', 'verified']);
-        $this->middleware(function ($request, $next) {
-            if (!auth()->check() || !auth()->user()->isAdmin()) {
-                abort(403, 'غير مصرح بالوصول');
-            }
-            return $next($request);
-        });
-    }
-
-    /**
      * عرض لوحة التحكم الرئيسية مع الإحصائيات
      */
     public function index()
     {
+        // التحقق من صلاحيات المدير
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'غير مصرح بالوصول');
+        }
+
         $stats = $this->getDashboardStats();
         $products = Product::with('user')->latest()->paginate(50);
         $pendingUsers = User::where('role', 'shop_owner')->where('is_approved', false)->paginate(10, ['*'], 'pending_users_page');
@@ -56,6 +48,10 @@ class DashboardController extends Controller
      */
     public function destroyProduct($id)
     {
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'غير مصرح بالوصول');
+        }
+
         $product = Product::findOrFail($id);
         
         // حذف الصورة إذا كانت موجودة
@@ -78,6 +74,10 @@ class DashboardController extends Controller
      */
     public function toggleProductApproval($id)
     {
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'غير مصرح بالوصول');
+        }
+
         $product = Product::findOrFail($id);
         $product->is_approved = !$product->is_approved;
         $product->save();
@@ -91,11 +91,19 @@ class DashboardController extends Controller
      */
     public function approveUser($id)
     {
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'غير مصرح بالوصول');
+        }
+
         $user = User::findOrFail($id);
         $user->is_approved = true;
+        $user->email_verified_at = now(); // تفعيل البريد تلقائياً
         $user->save();
 
-        return redirect()->back()->with('success', 'تمت الموافقة على حساب التاجر بنجاح');
+        // إرسال إشعار بالموافقة للتاجر
+        $user->notify(new ShopApproved());
+
+        return redirect()->back()->with('success', 'تمت الموافقة على حساب التاجر بنجاح وتم إرسال إشعار له');
     }
 
     /**
@@ -103,6 +111,9 @@ class DashboardController extends Controller
      */
     public function rejectUser($id)
     {
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'غير مصرح بالوصول');
+        }
         $user = User::findOrFail($id);
         $user->delete();
 
@@ -114,6 +125,9 @@ class DashboardController extends Controller
      */
     public function updateProduct(Request $request, $id)
     {
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'غير مصرح بالوصول');
+        }
         $product = Product::findOrFail($id);
         
         $validated = $request->validate([

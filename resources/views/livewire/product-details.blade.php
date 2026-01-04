@@ -18,22 +18,80 @@
                     <div class="flex justify-between items-start mb-4">
                         <div>
                             <h1 class="text-3xl font-black text-gray-800 mb-2">{{ $product->name }}</h1>
-                            <div class="flex gap-2">
+                            <div class="flex flex-wrap gap-2">
                                 <span class="text-gray-500 text-xs bg-gray-100 px-2 py-1 rounded">
                                     {{ $product->category }}
                                 </span>
+                                @if($product->sub_category)
+                                    <span class="text-gray-500 text-xs bg-blue-50 px-2 py-1 rounded">
+                                        📂 {{ $product->sub_category }}
+                                    </span>
+                                @endif
+                                @if($product->brand)
+                                    <span class="text-gray-700 text-xs bg-yellow-50 px-2 py-1 rounded font-bold">
+                                        🏷️ {{ $product->brand }}
+                                    </span>
+                                @endif
                                 <span class="text-gray-400 text-xs flex items-center gap-1">
                                     🕒 {{ $product->created_at->diffForHumans() }}
                                 </span>
                                 <span class="text-blue-600 text-xs bg-blue-50 px-2 py-1 rounded font-bold">
                                     {{ $product->reference_code }}
                                 </span>
+                                @if($product->condition)
+                                    <span class="text-xs px-2 py-1 rounded font-bold {{ $product->condition == 'new' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700' }}">
+                                        {{ $product->condition == 'new' ? '✨ جديد' : '♻️ مستعمل' }}
+                                    </span>
+                                @endif
+                                @if(isset($product->added_by) && $product->added_by == 'shop_owner' && $product->user)
+                                    {{-- رابط المتجر مع اسمه --}}
+                                    <a href="{{ route('shop.show', ['id' => $product->user_id]) }}" 
+                                       class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-2 py-1 rounded transition-colors inline-flex items-center gap-1"
+                                       title="عرض جميع منتجات {{ $product->user->shop_name ?? $product->shop_name }}">
+                                        🏪 {{ $product->user->shop_name ?? $product->shop_name }}
+                                    </a>
+                                @else
+                                    <span class="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded flex items-center gap-1">
+                                        👤 مواطن
+                                    </span>
+                                @endif
                             </div>
                         </div>
                         <div class="text-left">
                             <p class="text-4xl font-black text-red-600">{{ $product->formatted_price }}</p>
                         </div>
                     </div>
+
+                    <!-- تفاصيل المنتج الإضافية -->
+                    @if($product->brand || $product->sub_category || $product->condition)
+                    <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 mb-6">
+                        <h3 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                            <span>📋</span> معلومات المنتج
+                        </h3>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                            @if($product->brand)
+                            <div>
+                                <span class="text-gray-500 block mb-1">الماركة / الشركة</span>
+                                <span class="font-bold text-gray-800">{{ $product->brand }}</span>
+                            </div>
+                            @endif
+                            @if($product->sub_category)
+                            <div>
+                                <span class="text-gray-500 block mb-1">التصنيف الفرعي</span>
+                                <span class="font-bold text-gray-800">{{ $product->sub_category }}</span>
+                            </div>
+                            @endif
+                            @if($product->condition)
+                            <div>
+                                <span class="text-gray-500 block mb-1">الحالة</span>
+                                <span class="font-bold {{ $product->condition == 'new' ? 'text-green-600' : 'text-orange-600' }}">
+                                    {{ $product->condition == 'new' ? 'جديد' : 'مستعمل' }}
+                                </span>
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+                    @endif
 
                     <hr class="my-6 border-gray-100">
 
@@ -44,7 +102,15 @@
                                 <span class="bg-white p-1 rounded-full shadow-sm">📍</span> العنوان
                             </h3>
                             <p class="text-gray-600 font-bold">{{ $product->city }}</p>
-                            <p class="text-sm text-gray-500">{{ $product->shop_name }}</p>
+                            <div class="flex items-center gap-2 mt-1">
+                                @if(isset($product->added_by) && $product->added_by == 'shop_owner')
+                                    <span class="text-sm text-purple-600 font-bold flex items-center gap-1">
+                                        🏪 {{ $product->shop_name }}
+                                    </span>
+                                @else
+                                    <span class="text-sm text-gray-500">{{ $product->shop_name }}</span>
+                                @endif
+                            </div>
                             @if($product->address_details)
                                 <p class="text-xs text-gray-400 mt-1">{{ $product->address_details }}</p>
                             @endif
@@ -131,18 +197,37 @@
 
                     <div class="space-y-3">
                         @forelse($similarProducts as $sim)
-                            <a href="{{ route('products.show', $sim->id) }}" class="flex items-center gap-3 p-3 rounded-xl border border-gray-50 hover:bg-gray-50 hover:border-gray-200 transition group">
-                                <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-xl group-hover:bg-white group-hover:shadow-sm transition">
-                                     @if(Str::contains($sim->category, 'جوال')) 📱 @else 📦 @endif
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <h4 class="font-bold text-gray-800 text-sm truncate group-hover:text-red-600">{{ $sim->name }}</h4>
-                                    <div class="flex justify-between items-center mt-1">
-                                        <span class="text-xs text-gray-500">{{ $sim->shop_name }}</span>
-                                        <span class="text-sm font-black text-red-600">{{ $sim->formatted_price }}</span>
+                            <div class="block p-3 rounded-xl border border-gray-100 hover:bg-gray-50 hover:border-gray-200 transition">
+                                {{-- اسم المنتج --}}
+                                <a href="{{ route('products.show', $sim->id) }}" class="block">
+                                    <h4 class="font-bold text-gray-800 text-sm hover:text-red-600 mb-2 line-clamp-2">
+                                        📱 {{ $sim->name }}
+                                    </h4>
+                                </a>
+                                
+                                {{-- السطر السفلي: الناشر + السعر --}}
+                                <div class="flex items-center justify-between gap-2">
+                                    {{-- معلومات الناشر --}}
+                                    <div>
+                                        @if($sim->added_by == 'shop_owner' && $sim->user_id)
+                                            <a href="{{ route('shop.show', ['id' => $sim->user_id]) }}" 
+                                               class="inline-block bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-bold px-2 py-1 rounded transition-colors"
+                                               title="زيارة متجر {{ $sim->shop_name }}">
+                                                🏪 {{ Str::limit($sim->shop_name, 12) }}
+                                            </a>
+                                        @else
+                                            <span class="inline-block bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded">
+                                                👤 مواطن
+                                            </span>
+                                        @endif
                                     </div>
+                                    
+                                    {{-- السعر --}}
+                                    <span class="text-base font-black text-red-600">
+                                        {{ number_format($sim->price, 2) }} ₪
+                                    </span>
                                 </div>
-                            </a>
+                            </div>
                         @empty
                             <div class="text-center py-8 text-gray-400 text-sm">
                                 لا توجد منتجات مشابهة بالاسم.

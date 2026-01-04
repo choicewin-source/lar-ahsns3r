@@ -104,13 +104,12 @@ class HomePage extends Component
 
     public function render()
     {
-        $query = Product::with('user')->where('is_approved', true);
-        // تحسين: تحديد الأعمدة المطلوبة فقط لتقليل استهلاك الذاكرة
-        $query = Product::select('id', 'name', 'price', 'image_path', 'city', 'shop_name', 'created_at', 'category', 'reference_code', 'condition')
+        // جلب جميع المنتجات المعتمدة مع الفلاتر
+        $query = Product::select('id', 'name', 'price', 'image_path', 'city', 'shop_name', 'created_at', 'category', 'sub_category', 'reference_code', 'condition', 'added_by', 'user_id')
+            ->with('user:id,name,shop_name,is_approved')
             ->where('is_approved', true);
-        // تمت إزالة with('user') إذا لم تكن بيانات المستخدم ضرورية في بطاقة العرض الرئيسية
 
-        // فلترة حسب القسم
+        // فلترة حسب القسم الرئيسي
         if ($this->selectedCategory) {
             $query->where('category', $this->selectedCategory);
         }
@@ -135,8 +134,42 @@ class HomePage extends Component
             $query->where('condition', $this->condition);
         }
 
-        // الترتيب حسب السعر (الأقل أولاً) ثم حسب التاريخ (الأحدث أولاً)
-        $products = $query->orderBy('price', 'asc')->orderBy('created_at', 'desc')->paginate(12);
+        // جلب كل المنتجات مع الفلاتر - مرتبة من الأحدث للأقدم
+        $allProducts = $query->orderBy('created_at', 'desc')->get();
+
+        // تجميع المنتجات حسب النظام الهرمي: Category > Sub_Category > Name
+        // ثم أخذ أفضل سعر (الأقل) من كل موديل على حدة
+        $bestPriceProducts = $allProducts
+            ->groupBy(function($product) {
+                // المفتاح الفريد: القسم + القسم الفرعي + الاسم (الموديل)
+                // تمت إزالة condition لضمان المقارنة بين نفس الموديل بغض النظر عن الحالة
+                return $product->category . '|' . 
+                       ($product->sub_category ?? 'N/A') . '|' . 
+                       trim($product->name);
+            })
+            ->map(function($group) {
+                // من كل مجموعة، نأخذ المنتج ذو أقل سعر
+                // ولكن نحفظ أيضاً تاريخ أحدث منتج في المجموعة
+                $cheapest = $group->sortBy('price')->first();
+                $cheapest->latest_in_group = $group->max('created_at');
+                return $cheapest;
+            })
+            ->values()
+            ->sortByDesc('latest_in_group') // ترتيب حسب أحدث منتج في كل مجموعة
+            ->values();
+
+        // تحويل النتيجة إلى Paginator
+        $perPage = 15;
+        $currentPage = \Illuminate\Pagination\Paginator::resolveCurrentPage('page');
+        $currentItems = $bestPriceProducts->slice(($currentPage - 1) * $perPage, $perPage)->values();
+        
+        $products = new \Illuminate\Pagination\LengthAwarePaginator(
+            $currentItems,
+            $bestPriceProducts->count(),
+            $perPage,
+            $currentPage,
+            ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath()]
+        );
 
         return view('livewire.home-page', [
             'products' => $products,

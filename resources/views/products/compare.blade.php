@@ -64,7 +64,10 @@
                                                 @if($index === 0)
                                                     <span class="bg-yellow-400 text-white text-xs px-2 py-1 rounded-full font-bold">🥇 الأفضل</span>
                                                 @endif
-                                                <span class="font-medium text-gray-900">{{ $product['model'] }}</span>
+                                                <a href="{{ route('products.show', $product['id']) }}" 
+                                                   class="font-medium text-gray-900 hover:text-red-600 hover:underline transition">
+                                                    {{ $product['model'] }}
+                                                </a>
                                             </div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
@@ -78,17 +81,31 @@
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                             {{ $product['city'] }}
                                         </td>
+                                         <td class="px-6 py-4 whitespace-nowrap">
+                                             @if($product['added_by'] == 'shop_owner' && isset($product['user']) && $product['user'] && $product['user']->is_approved)
+                                                 {{-- متجر معتمد --}}
+                                                 <a href="{{ route('shop.show', ['id' => $product['user_id']]) }}" 
+                                                    class="inline-flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-white text-xs px-3 py-1.5 rounded-lg transition font-bold">
+                                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                                                     </svg>
+                                                     متجر معتمد
+                                                 </a>
+                                             @else
+                                                 {{-- زبون / مواطن --}}
+                                                 <span class="inline-flex items-center gap-1 bg-green-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold">
+                                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                                     </svg>
+                                                     زبون
+                                                 </span>
+                                             @endif
+                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            @if($product['added_by'] == 'shop_owner')
-                                                <span class="bg-gray-900 text-white text-xs px-2 py-1 rounded">محل تجاري</span>
-                                            @else
-                                                <span class="bg-green-600 text-white text-xs px-2 py-1 rounded">تجربة مواطن</span>
-                                            @endif
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded text-xs">
+                                            <a href="{{ route('products.show', $product['id']) }}" 
+                                               class="font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded text-xs inline-block transition">
                                                 {{ $product['reference_code'] }}
-                                            </span>
+                                            </a>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {{ $product['created_at']->format('Y-m-d') }}

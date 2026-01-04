@@ -17,19 +17,27 @@
             body, html, .font-sans, h1, h2, h3, h4, h5, h6, p, span, a, button, input, select {
                 font-family: 'Cairo', sans-serif !important;
             }
+            /* Hide elements with x-cloak until Alpine is ready */
+            [x-cloak] { display: none !important; }
         </style>
+
+        <!-- Livewire Styles -->
+        @livewireStyles
+
+        <!-- Alpine.js from CDN - must load before Vite -->
+        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
-        
-        <!-- Livewire Styles -->
-        @livewireStyles
     </head>
     <body class="font-sans antialiased bg-gray-50 text-gray-800">
         <div class="min-h-screen flex flex-col justify-between">
             
             <!-- استدعاء الناف بار (الهيدر) -->
             @include('layouts.navigation')
+
+            <!-- شريط الإعلانات المتحرك -->
+            <x-announcement-ticker />
 
             <!-- المحتوى المتغير -->
             <main class="flex-grow">
@@ -56,7 +64,5 @@
 
         <!-- Livewire Scripts -->
         @livewireScripts
-        <!-- Alpine.js for modal and interactivity -->
-        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     </body>
 </html>

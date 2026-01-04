@@ -14,23 +14,6 @@
             <p class="text-gray-500 mt-2 text-sm font-medium">أهلاً بك مجدداً في منصة <span class="text-red-600 font-bold">أحسن سعر</span></p>
         </div>
 
-        <!-- زر جوجل -->
-        <div class="mb-6">
-            <a href="{{ route('auth.google') }}" class="flex items-center justify-center w-full px-4 py-3 text-gray-700 transition-colors duration-200 transform bg-white border-2 border-gray-100 rounded-xl hover:bg-gray-50 hover:border-gray-200 focus:outline-none focus:ring focus:ring-gray-200 focus:ring-opacity-50 shadow-sm gap-3">
-                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M23.766 12.2764C23.766 11.4607 23.6999 10.6406 23.5588 9.83807H12.24V14.4591H18.7217C18.4528 15.9494 17.5885 17.2678 16.323 18.1056V21.1039H20.19C22.4608 19.0139 23.766 15.9274 23.766 12.2764Z" fill="#4285F4"/>
-                    <path d="M12.2401 24.0008C15.4766 24.0008 18.2059 22.9382 20.1945 21.1039L16.3275 18.1055C15.2517 18.8375 13.8627 19.252 12.2445 19.252C9.11388 19.252 6.45946 17.1399 5.50705 14.3003H1.5166V17.3912C3.55371 21.4434 7.7029 24.0008 12.2401 24.0008Z" fill="#34A853"/>
-                    <path d="M5.50253 14.3003C5.00236 12.8099 5.00236 11.1961 5.50253 9.70575V6.61481H1.51649C-0.18551 10.0056 -0.18551 14.0004 1.51649 17.3912L5.50253 14.3003Z" fill="#FBBC05"/>
-                    <path d="M12.2401 4.74966C13.9509 4.7232 15.6044 5.36697 16.8434 6.54867L20.2695 3.12262C18.1001 1.0855 15.2208 -0.034466 12.2401 0.000808666C7.7029 0.000808666 3.55371 2.55822 1.5166 6.61481L5.50264 9.70575C6.45064 6.86173 9.10947 4.74966 12.2401 4.74966Z" fill="#EA4335"/>
-                </svg>
-                <span class="font-bold text-sm">الدخول باستخدام Google</span>
-            </a>
-        </div>
-
-        <div class="relative flex items-center justify-center mb-6">
-            <span class="absolute px-3 font-medium text-gray-500 bg-white">أو عبر البريد</span>
-            <div class="w-full border-b border-gray-200"></div>
-        </div>
 
         <form method="POST" action="{{ route('login') }}">
             @csrf
@@ -88,14 +71,9 @@
             <!-- روابط التسجيل -->
             <div class="mt-8 pt-6 border-t border-gray-100 text-center">
                 <p class="text-sm text-gray-500 mb-3">ليس لديك حساب في أحسن سعر؟</p>
-                <div class="flex justify-center gap-4 text-sm">
-                    <a href="{{ route('register') }}" class="flex items-center gap-1 font-bold text-gray-700 hover:text-red-600 transition bg-gray-50 hover:bg-red-50 px-3 py-2 rounded-lg border border-gray-200 hover:border-red-200">
-                        👤 تسجيل زبون جديد
-                    </a>
-                    <a href="{{ route('shop.register') }}" class="flex items-center gap-1 font-bold text-gray-700 hover:text-blue-600 transition bg-gray-50 hover:bg-blue-50 px-3 py-2 rounded-lg border border-gray-200 hover:border-blue-200">
-                        🏪 تسجيل متجر جديد
-                    </a>
-                </div>
+                <a href="{{ route('shop.register') }}" class="inline-flex items-center gap-1 font-bold text-gray-700 hover:text-blue-600 transition bg-gray-50 hover:bg-blue-50 px-4 py-2 rounded-lg border border-gray-200 hover:border-blue-200">
+                    🏪 تسجيل متجر جديد
+                </a>
             </div>
         </form>
     </div>

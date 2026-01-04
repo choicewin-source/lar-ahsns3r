@@ -28,7 +28,19 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        // توجيه المستخدم حسب دوره
+        $user = Auth::user();
+        
+        if ($user->isAdmin()) {
+            // المدير يذهب إلى لوحة التحكم الخاصة به
+            return redirect()->intended(route('admin.dashboard', absolute: false));
+        } elseif ($user->isShopOwner()) {
+            // صاحب المتجر يذهب إلى لوحة تحكم المتجر
+            return redirect()->intended(route('shop.dashboard', absolute: false));
+        }
+        
+        // المستخدم العادي يذهب إلى الصفحة الرئيسية
+        return redirect()->intended(route('home', absolute: false));
     }
 
     /**

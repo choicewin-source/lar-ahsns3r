@@ -24,6 +24,8 @@ Route::middleware('guest')->group(function () {
     // Shop Registration
     Route::get('register-shop', [ShopRegisterController::class, 'create'])->name('shop.register');
     Route::post('register-shop', [ShopRegisterController::class, 'store'])->name('shop.register.store');
+    Route::get('register-shop/complete', [ShopRegisterController::class, 'showCompleteForm'])->name('shop.register.complete');
+    Route::post('register-shop/complete', [ShopRegisterController::class, 'completeRegistration'])->name('shop.register.complete.store');
 
     // تسجيل الدخول (Login)
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
@@ -47,6 +49,7 @@ Route::middleware('guest')->group(function () {
 
     // Social Login (Google)
     Route::get('auth/google', [SocialLoginController::class, 'redirectToGoogle'])->name('auth.google');
+    Route::get('auth/google/shop', [SocialLoginController::class, 'redirectToGoogleForShop'])->name('auth.google.shop');
     Route::get('auth/google/callback', [SocialLoginController::class, 'handleGoogleCallback']);
 });
 

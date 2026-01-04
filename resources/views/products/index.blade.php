@@ -70,7 +70,7 @@
             <!-- جدول المنتجات -->
             <div class="bg-white rounded-xl shadow-md overflow-hidden">
                 <div class="bg-red-600 text-white px-6 py-4">
-                    <h3 class="text-lg font-bold">جميع المنتجات (مرتبة من الأقدم للأحدث)</h3>
+                    <h3 class="text-lg font-bold">جميع المنتجات (مرتبة من الأحدث للأقدم)</h3>
                 </div>
                 
                 <div class="overflow-x-auto">
@@ -115,10 +115,18 @@
                                         {{ $product->shop_name }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                        @if($product->added_by == 'shop_owner')
-                                            <span class="bg-gray-900 text-white text-xs px-2 py-1 rounded">محل تجاري</span>
+                                        @if($product->added_by == 'shop_owner' && $product->user && $product->user->is_approved)
+                                            {{-- متجر معتمد --}}
+                                            <a href="{{ route('shop.show', ['id' => $product->user_id]) }}" 
+                                               class="inline-flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-white text-xs px-2 py-1 rounded transition">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                                                </svg>
+                                                متجر معتمد
+                                            </a>
                                         @else
-                                            <span class="bg-green-600 text-white text-xs px-2 py-1 rounded">تجربة مواطن</span>
+                                            {{-- زبون --}}
+                                            <span class="bg-green-600 text-white text-xs px-2 py-1 rounded">زبون</span>
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

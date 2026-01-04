@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Notifications\NewShopRegistration;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -60,8 +61,8 @@ class ShopRegisterController extends Controller
 
         event(new Registered($user));
 
-        // إشعار المديرين بطلب تسجيل جديد (يمكن إضافة إشعار أو إيميل هنا)
-        // $this->notifyAdmins($user);
+        // إشعار المديرين بطلب تسجيل جديد
+        $this->notifyAdmins($user);
 
         Auth::login($user);
 
@@ -71,20 +72,83 @@ class ShopRegisterController extends Controller
     }
 
     /**
+     * عرض نموذج إكمال تسجيل المتجر (بعد Google OAuth)
+     */
+    public function showCompleteForm(): View|RedirectResponse
+    {
+        $userId = session('google_shop_user_id');
+        
+        if (!$userId) {
+            return redirect()->route('shop.register')
+                ->with('error', 'انتهت صلاحية الجلسة. يرجى المحاولة مرة أخرى.');
+        }
+
+        $user = User::find($userId);
+        
+        if (!$user) {
+            return redirect()->route('shop.register')
+                ->with('error', 'حدث خطأ. يرجى المحاولة مرة أخرى.');
+        }
+
+        return view('auth.register-shop-complete', compact('user'));
+    }
+
+    /**
+     * إكمال تسجيل المتجر (بعد Google OAuth)
+     */
+    public function completeRegistration(Request $request): RedirectResponse
+    {
+        $userId = session('google_shop_user_id');
+        
+        if (!$userId) {
+            return redirect()->route('shop.register')
+                ->with('error', 'انتهت صلاحية الجلسة. يرجى المحاولة مرة أخرى.');
+        }
+
+        $user = User::find($userId);
+        
+        if (!$user) {
+            return redirect()->route('shop.register')
+                ->with('error', 'حدث خطأ. يرجى المحاولة مرة أخرى.');
+        }
+
+        $request->validate([
+            'shop_name' => ['required', 'string', 'max:255', 'unique:users,shop_name'],
+            'shop_city' => ['required', 'string', 'max:255'],
+            'shop_phone' => ['nullable', 'string', 'max:20', 'regex:/^[\d\-\+\s\(\)]{8,20}$/'],
+        ], [
+            'shop_name.required' => 'يرجى إدخال اسم المعرض/المتجر.',
+            'shop_name.unique' => 'اسم المعرض هذا مسجل مسبقاً، يرجى اختيار اسم آخر.',
+            'shop_city.required' => 'يرجى اختيار المدينة.',
+            'shop_phone.regex' => 'رقم الهاتف غير صحيح.',
+        ]);
+
+        $user->update([
+            'shop_name' => $request->shop_name,
+            'shop_city' => $request->shop_city,
+            'shop_phone' => $request->shop_phone,
+        ]);
+
+        // إشعار المديرين بطلب تسجيل جديد
+        $this->notifyAdmins($user);
+
+        // مسح الجلسة
+        session()->forget('google_shop_user_id');
+
+        // توجيه المستخدم لصفحة انتظار الموافقة
+        return redirect()->route('register.pending')
+            ->with('success', 'تم تسجيل متجرك بنجاح! حسابك قيد المراجعة من قبل الإدارة.');
+    }
+
+    /**
      * إشعار المديرين بطلب تسجيل متجر جديد
-     * (وظيفة اختيارية يمكن تفعيلها لاحقاً)
      */
     private function notifyAdmins(User $shopOwner): void
     {
-        // يمكن إرسال إيميل للمديرين
-        // أو إضافة إشعار في لوحة التحكم
-        // أو إرسال رسالة عبر تليجرام
-        
-        /*
         $admins = User::where('role', 'admin')->get();
+        
         foreach ($admins as $admin) {
-            // إرسال إيميل أو إشعار
+            $admin->notify(new NewShopRegistration($shopOwner));
         }
-        */
     }
 }

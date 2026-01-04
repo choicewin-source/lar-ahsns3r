@@ -9,6 +9,7 @@
         <p class="text-gray-500 text-sm mt-2">انضم إلينا واعرض منتجاتك لآلاف الزبائن في غزة</p>
     </div>
 
+
     <form method="POST" action="{{ route('shop.register') }}">
         @csrf
 
@@ -155,14 +156,6 @@
             <a href="{{ route('login') }}" class="inline-flex items-center gap-1 font-bold text-gray-700 hover:text-blue-600 transition bg-gray-50 hover:bg-blue-50 px-4 py-2 rounded-lg border border-gray-200 hover:border-blue-200">
                 🔐 تسجيل الدخول
             </a>
-            
-            <div class="mt-4">
-                <a href="{{ route('register') }}">
-                    <x-secondary-button class="w-full justify-center py-3.5 text-lg font-bold bg-white text-gray-700 border border-gray-300 hover:bg-gray-100 focus:ring-gray-200 shadow-sm hover:shadow-md transition-all duration-200 rounded-xl">
-                        إنشاء حساب زبون عادي
-                    </x-secondary-button>
-                </a>
-            </div>
         </div>
     </form>
 </x-guest-layout>

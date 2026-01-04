@@ -8,22 +8,8 @@ return new class extends Migration
 {
     public function up()
     {
-        Schema::table('products', function (Blueprint $table) {
-            // هذه الحقول يجب أن تكون في الهجرة الرئيسية، 
-            // ولكن نضيفها هنا للتأكد من التوافق مع النسخ القديمة
-            
-            if (!Schema::hasColumn('products', 'reference_code')) {
-                $table->string('reference_code')->nullable()->after('id');
-            }
-            
-            if (!Schema::hasColumn('products', 'is_approved')) {
-                $table->boolean('is_approved')->default(true)->after('edit_token');
-            }
-            
-            // إضافة فهارس لتحسين الأداء
-            $table->index(['category', 'sub_category'], 'products_category_sub_index');
-            $table->index('price');
-        });
+        // جميع الحقول والفهارس موجودة في create_products_table migration
+        // لا نحتاج لإضافة أي شيء هنا
     }
 
     public function down()
