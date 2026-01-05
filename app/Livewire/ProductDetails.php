@@ -36,33 +36,41 @@ class ProductDetails extends Component
 
     public function render()
     {
-        // تقسيم الاسم للبحث الذكي
-        $words = explode(' ', $this->product->name);
-        $searchTerms = array_slice($words, 0, 3); // خذ أول 3 كلمات
-
-        $similarProducts = Product::select('id', 'name', 'price', 'category', 'shop_name', 'added_by', 'user_id')
-            ->with('user:id,name,shop_name') // جلب معلومات المستخدم/المتجر
+        // البحث عن منتجات مشابهة بنفس الاسم (الموديل) في نفس الفئة والفئة الفرعية
+        $similarProducts = Product::select('id', 'name', 'price', 'category', 'sub_category', 'shop_name', 'added_by', 'user_id', 'condition')
+            ->with('user:id,name,shop_name,is_approved')
             ->where('category', $this->product->category)
+            ->where('sub_category', $this->product->sub_category)
+            ->where('name', $this->product->name)
             ->where('id', '!=', $this->product->id)
-            ->where('is_approved', true) // فقط المنتجات المعتمدة
-            ->where(function($query) use ($searchTerms) {
-                foreach ($searchTerms as $term) {
-                    if(mb_strlen($term) > 1) {
-                        $query->where('name', 'LIKE', "%{$term}%");
-                    }
-                }
-            })
+            ->where('is_approved', true)
             ->orderBy('price', 'asc')
             ->take(10)
             ->get();
+        
+        // إذا لم نجد منتجات بنفس الاسم، ابحث عن منتجات مشابهة في نفس الفئة الفرعية
+        if($similarProducts->isEmpty()) {
+            $similarProducts = Product::select('id', 'name', 'price', 'category', 'sub_category', 'shop_name', 'added_by', 'user_id', 'condition')
+                ->with('user:id,name,shop_name,is_approved')
+                ->where('category', $this->product->category)
+                ->where('sub_category', $this->product->sub_category)
+                ->where('id', '!=', $this->product->id)
+                ->where('is_approved', true)
+                ->orderBy('price', 'asc')
+                ->take(10)
+                ->get();
+        }
 
-        // منطق الأرخص
+        // منطق الأرخص - التحقق من كون هذا أفضل سعر للموديل
         $isCheapest = false;
         if($similarProducts->isNotEmpty()) {
             $cheapestMarketPrice = $similarProducts->first()->price;
             if($this->product->price <= $cheapestMarketPrice) {
                 $isCheapest = true;
             }
+        } else {
+            // إذا لم توجد منتجات مشابهة، فهذا هو الوحيد = الأرخص
+            $isCheapest = true;
         }
 
         return view('livewire.product-details', [

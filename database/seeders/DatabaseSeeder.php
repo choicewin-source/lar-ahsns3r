@@ -16,24 +16,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // حساب المالك الوحيد - التحقق من عدم وجوده أولاً
-        if (!User::where('email', 'admin@bestprice.com')->exists()) {
+        // حساب المدير الوحيد - التحقق من عدم وجوده أولاً
+        if (!User::where('email', 'manager@bestprice.ps')->exists()) {
             User::create([
-                'name' => 'Administrator',
-                'email' => 'admin@bestprice.com',
-                'password' => Hash::make('Admin@123456'),
-                'email_verified_at' => now(),
-                'role' => 'admin',
-                'is_approved' => true,
-            ]);
-        }
-
-        // حساب مساعد (اختياري)
-        if (!User::where('email', 'moderator@bestprice.com')->exists()) {
-            User::create([
-                'name' => 'المشرف',
-                'email' => 'moderator@bestprice.com',
-                'password' => Hash::make('Moderator@123'),
+                'name' => 'مدير النظام',
+                'email' => 'manager@bestprice.ps',
+                'password' => Hash::make('BestPrice@2026!'),
                 'email_verified_at' => now(),
                 'role' => 'admin',
                 'is_approved' => true,

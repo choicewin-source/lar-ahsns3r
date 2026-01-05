@@ -85,10 +85,10 @@
     @endif
 
     {{-- 1. الهيدر --}}
-    <header class="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
+    <header class="bg-white border-b border-gray-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {{-- شريط الأخبار المتحرك المحسّن --}}
-            <div class="relative overflow-hidden py-2.5 z-50 rounded-b-xl shadow-lg" 
+            <div class="relative overflow-hidden py-2.5 rounded-b-xl shadow-lg"
                  style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);" 
                  role="region" aria-label="أخبار الموقع">
                 <div class="absolute inset-0 opacity-10" 
@@ -239,7 +239,7 @@
 
 
             {{-- شريط التصنيفات السريع المحسّن --}}
-            <div class="hidden md:flex justify-center gap-3 py-4 text-sm font-bold border-t relative z-40" 
+            <div class="hidden md:flex justify-center gap-3 py-4 text-sm font-bold border-t sticky top-0 z-50 shadow-sm" 
                  style="background: linear-gradient(to bottom, #ffffff 0%, #fafafa 50%, #ffffff 100%); border-color: #e5e7eb;">
                 @foreach(array_slice($categoriesList, 0, 8) as $cat)
                     <div x-data="{ open: false }" @mouseenter="open = true" @mouseleave="open = false" class="relative group">
